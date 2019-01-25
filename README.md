@@ -1,5 +1,7 @@
 # iplayer scraper
 
+SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
+
 # TODO:
 
     [ ] Dictionary building for each object in Json Structure
