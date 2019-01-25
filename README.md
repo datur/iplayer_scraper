@@ -2,13 +2,11 @@
 
 # TODO:
 
-    [ ] Dictionary building for each page
+    [ ] Dictionary building for each object in Json Structure
     [ ] Refactoring current code into methods
-    [ ] Finish episode page navigation if more than one page
-    [ ] add a for loop for the pages relating to the alphabet
-    [ ] 
-    
-    
+    [ ] Finish episode page navigation if more than one page of episodes
+    [ ] Loop through alphabet 
+    [ ] Save to Json
     
     
     
