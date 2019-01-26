@@ -9,7 +9,8 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
     [ ] Finish episode page navigation if more than one page of episodes
     [ ] Loop through alphabet 
     [ ] Save to Json
-    
+    [ ] Format and clean up file
+        
     
     
 # features
