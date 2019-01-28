@@ -21,7 +21,7 @@ navigation = initial_page.find('ul', attrs={'class': 'scrollable-nav__track'})
 navigation_list = navigation.find_all('li')
 navigation_list = [x.a['href'] for x in navigation_list if x.a is not None ]
 
-programs_dictionary = {}
+programs_dict = {}
 
 for suffix in navigation_list:
     web_page = Browser.get_page(BASE_URL + suffix)
@@ -32,13 +32,18 @@ for suffix in navigation_list:
     for program_box in program_selection: 
     	program_title, program_synopsis, latest_episode_url, episodes_available = Extractor.iplayer_atoz_page_extractor(program_box) 
 
-    	program_website_url, program_credits_url, credits_available = Extractor.programme_website_extractor(Browser.get_page(latest_episode_url))
+    	#program_website_url, program_credits_url, credits_available = Extractor.programme_website_extractor(Browser.get_page(latest_episode_url))
 
-    	
+    	_id = latest_episode_url.split('/')
+
+    	programs_dict[_id[-2]] = {'program title': program_title,
+    							  'program_synopsis': program_synopsis,
+    							  'latest_episode_url': BASE_URL+latest_episode_url,
+    							  'episodes_available': episodes_available}
 
 
 
 
-
+print(programs_dict)
 		
 
