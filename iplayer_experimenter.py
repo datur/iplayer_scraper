@@ -13,8 +13,6 @@ SCRAPING_SUFFIX = '/iplayer/a-z/'
 
 browser = mechanicalsoup.StatefulBrowser()
 
-
-
 # Dictionary to hold the data
 
 program_data = {}
@@ -34,14 +32,6 @@ print(navigation_list)
 
 
 # From the initial wep page with the list of programs collect the title and synopsis. Can also grab the number of episodes. Collect link for further extraction
-# 
-# This section yields:
-# - Title
-# - Synopsis
-# - Episode Link
-# 
-
-
 
 for item in selection:
     title = item.find('p', attrs={"class": "list-content-item__title"})
@@ -273,9 +263,27 @@ Method to extract program information for the A to Z iplayer pages. This method 
     - small synopsis 
 
 '''
-def iplayer_atoz_page_extractor():
+def iplayer_atoz_page_extractor(program_selection):
+    '''arguement is soup div tag for a program.
+    Returns program title, program synopsis, no of
+    episodes available, and the link to the latest episode'''
+    # Program Title
+    title = program_selection.find('p',
+            attrs={'class':
+                'list-content-item__title'}).get_text()
+    # Program Synopsis
+    synopsis = program_selection.find('p',
+            attrs={'class':
+                'list-content-item__synopsis'}).get_text()
+    # Link to latest episode
+    latest_episode_url = program_selection.find('a',
+            href=True)['href']
+    # Number of episodes available
+    episodes_available = program_selection.find('div',
+            attrs={'class': 'list-content-item__sublabels'})
     
-    return 0
+    
+    return title, synopsis, latest_episode_url
 
 
 '''
@@ -290,19 +298,29 @@ This method will yield containing:
     - days left to watch
 '''
 def episode_page_extractor():
-    
+         
+
     return 0
 
 '''
 
 This method will yield:
     
-    - Genre and format
-    -  
+    - program website url
+    - bool of wether credits are available
 '''
-def programme_website_extractor():
+def programme_website_extractor(web_page):
     
-    return 0
+    program_website_url = web_page.find('a',
+            attrs={'class': 'lnk'},
+            text='Programme website')['href']
+    program_credits_url = web_page.find('a',
+            attrs={'class': 'lnk'},
+            text='Credits')
+    
+    credits_available = bool(program_credits_url)
+    
+    return program_website_url, credits_available
 
 '''
 Method for extracting a list of bbc recommended shows relating to the current program.
@@ -314,8 +332,11 @@ This method yields:
         - show link
         - short synopsis
 '''
-def recommendation_extraction():
-    
+def recommendation_extraction(browser):
+    url = browser.get_url() + '/recommendations'
+    browser.open(url)
+    recommend_page = browser.get_current_page()
+
     return 0
 
 '''
@@ -338,6 +359,17 @@ this method yields:
 def episode_list_extraction():
     
     return 0
+
+'''
+wrapper method to simplyfy browser navigation
+'''
+def navigate_to_url(browser, url):
+    '''
+    arguements: mechanicalsoup stateful browser object, url
+    returns:    the html of the url navigated to
+    '''
+    browser.open(url)
+    return browser.get_current_page() 
 
 '''
 Method for building the required dictionaries for each show
