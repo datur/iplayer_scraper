@@ -4,13 +4,14 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
 
 # TODO:
 
-    [ ] Dictionary building for each object in Json Structure
-    [ ] Refactoring current code into methods
+    [/] Dictionary building for each object in Json Structure
+    [X] Refactoring current code into methods
     [X] Finish episode page navigation if more than one page of episodes
-    [ ] Loop through alphabet 
+    [X] Loop through alphabet 
     [ ] Save to Json
-    [ ] Format and clean up file
-        
+    [/] Format and clean up file
+    [ ] finish class implimentation
+    [ ] file writing
     
     
 # features
