@@ -65,6 +65,10 @@ class Extractor(object):
         channel_text, channel_link, date_last_aired, time_last_aired = self.get_broadcast_info(
             web_page)
 
+        recommendations = self.iplayer_recmmendations(web_page)
+
+        available_episodes = self.available_episodes(web_page)
+
         # return this as a dictionary and use a dictionary update
 
         return credits, genre_format, left_to_watch, duration
@@ -204,12 +208,18 @@ class Extractor(object):
                 })
 
             if channel is not None:
-                channel_text = channel.find('a').get_text()
+                if channel.find('a'):
+                    channel_text = channel.find('a').get_text()
+                else:
+                    channel_text = None
             else:
                 channel_text = None
 
             if channel is not None:
-                channel_link = channel.find('a')['href']
+                if channel.find('a'):
+                    channel_link = channel.find('a')['href']
+                else:
+                    channel_link = None
             else:
                 channel_link = None
 

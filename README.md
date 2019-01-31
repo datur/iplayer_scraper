@@ -7,18 +7,18 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
     [/] Dictionary building for each object in Json Structure
     [X] Refactoring current code into methods
     [X] Finish episode page navigation if more than one page of episodes
-    [X] Loop through alphabet 
+    [X] Loop through alphabet
     [ ] Save to Json
     [/] Format and clean up file
     [ ] finish class implimentation
     [ ] file writing
     [ ] add convienience functions for classes
-    [ ] add a dict class for building and __repr__ method    
-    
+    [/] add a dict class for building and __repr__ method
+
 # features
-    
+
     Json Structure
-    
+
     {
         "program_id": {
             "program_name": Silent Witness,
@@ -75,7 +75,7 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
                  },
 
 
-                
+
             "upcoming_episodes": {
                 "episode_id": {
                     "episode_name": <text: episode_name>,
