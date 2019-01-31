@@ -67,7 +67,7 @@ class Extractor(object):
 
         recommendations = self.iplayer_recmmendations(web_page)
 
-        available_episodes = self.available_episodes(web_page)
+        available_episodes = self.episode_available_extraction§(web_page)
 
         # return this as a dictionary and use a dictionary update
 
