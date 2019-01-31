@@ -14,6 +14,7 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
     [ ] file writing
     [ ] add convienience functions for classes
     [/] add a dict class for building and __repr__ method
+    [ ] add imdbpy supposrt for finding the program id and getting some basic info
 
 # features
 
