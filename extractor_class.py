@@ -67,7 +67,7 @@ class Extractor(object):
 
         # return this as a dictionary and use a dictionary update
 
-        return credits, genre_format
+        return credits, genre_format, left_to_watch, duration
 
     def get_genre_format(self, web_page):
         genre_format = web_page.find(
@@ -86,8 +86,8 @@ class Extractor(object):
             genre_format_list = []
 
             for i in sim:
-                genre_format_list.append(
-                    [[x.get_text(), x['href']] for x in i.find_all('a')])
+                genre_format_list.append([[x.get_text(), x['href']]
+                                          for x in i.find_all('a', href=True)])
 
             genre_format_dict = {'genre': {}}
 
@@ -205,15 +205,23 @@ class Extractor(object):
 
             if channel is not None:
                 channel_text = channel.find('a').get_text()
+            else:
+                channel_text = None
 
             if channel is not None:
                 channel_link = channel.find('a')['href']
+            else:
+                channel_link = None
 
             if date_last_aired is not None:
                 date_last_aired = date_last_aired.get_text()
+            else:
+                date_last_aired = None
 
             if time_last_aired is not None:
                 time_last_aired = time_last_aired.get_text()
+            else:
+                time_last_aired = None
 
             return channel_text, channel_link, date_last_aired, time_last_aired
         else:
@@ -298,9 +306,6 @@ class Extractor(object):
     '''
 
     TODO: make these return stuff
-
-
-
 
 
 

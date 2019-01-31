@@ -30,6 +30,7 @@ for suffix in navigation_list:
     program_selection = web_page.find_all('li', attrs={"class": "grid__item"})
 
     for program_box in program_selection:
+
         program_title, program_synopsis, latest_episode_url, episodes_available = Extractor.iplayer_atoz_page_extractor(
             program_selection=program_box)
 
@@ -37,13 +38,17 @@ for suffix in navigation_list:
             Browser.get_page(BASE_URL + latest_episode_url))
 
         if program_website_url or program_credits_url:
-            credits, genre_format = Extractor.latest_episode_page(
+            credits, genre_format, left_to_watch, duration = Extractor.latest_episode_page(
                 Browser.get_page(BASE_URL + program_credits_url
                                  if credits_available else BASE_URL +
                                  program_website_url), credits_available)
 
+        # get bbc unique program id
         _id = latest_episode_url.split('/')
         _id = _id[-2]
+
+        # Dictionary Building
+
         programs_dict[_id] = {
             'program title':
             program_title,
