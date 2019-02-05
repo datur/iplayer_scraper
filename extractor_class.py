@@ -1,18 +1,51 @@
 # extractor class
 from bs4 import BeautifulSoup
 from browser_class import Browser
-
+from dictionary_builder import DictionaryBuilder
 
 class Extractor(object):
     """docstring for Extractor"""
 
     def __init__(self):
         super(Extractor, self).__init__()
+        self.Browser = Browser()
+        self.dictionary = DictionaryBuilder() 
+        self._BASE_URL = 'https://www.bbc.co.uk'
+        self._SCRAPING_SUFFIX = '/iplayer/a-z/'
+       
+        
+
+
+    def extract(self):
+        '''main extractor method. This will return a dictionary'''
+
+        initial_page = Browser.get_page(self._BASE_URL + self._SCRAPING_SUFFIX)
+        
+
+        navigation = initial_page.find('ul', attrs={'class': 'scrollable-nav__track'})
+        navigation_list = navigation.find_all('li')
+        navigation_list = [x.a['href'] for x in navigation_list if x.a is not None]
+
+        # TODO: this is where the main for loop will now go
+        for suffix in navigation_list:
+            web_page = Browser.get_page(BASE_URL + suffix)
+            
+            program_selection = web_page.find_all('li', attrs={"class": "grid__item"})
+
+            for program_box in program_selection:
+                program_info = self.iplayer_atoz_page_extractor(program_box)
+
+                
+
+
+        pass 
+
 
     def iplayer_atoz_page_extractor(self, program_selection):
         '''arguement is soup div tag for a program.
-        Returns program title, program synopsis, no of
-        episodes available, and the link to the latest episode
+        Returns a dictionary containingprogram title, 
+        program synopsis, no of episodes available, and 
+        the link to the latest episode
        '''
         # Program Title
         title = program_selection.find(
@@ -32,7 +65,10 @@ class Extractor(object):
                 'class': 'list-content-item__sublabels'
             }).get_text()
 
-        return title, synopsis, latest_episode_url, episodes_available
+        return {'title': title, 
+                'synopsis': synopsis, 
+                'latest_episode_url': latest_episode_url, 
+                'episodes_available': episodes_available}
 
     def programme_website_extractor(self, web_page):
         ''' input  '''
@@ -48,7 +84,10 @@ class Extractor(object):
             program_credits_url = program_credits_url['href']
         if program_website_url:
             program_website_url = program_website_url['href']
-        return program_website_url, program_credits_url, credits_available
+
+        return {'program_website_url': program_website_url, 
+                'program_credits_url': program_credits_url, 
+                'credits_available': credits_available}
 
     def latest_episode_page(self, web_page, credits_available):
         if credits_available:
@@ -70,8 +109,11 @@ class Extractor(object):
         available_episodes = self.episode_available_extraction(web_page)
 
         # return this as a dictionary and use a dictionary update
-
-        return credits, genre_format, left_to_watch, duration
+       
+        return {'credits': credits, 
+                'genre_format':genre_format, 
+                'left_to_watch':left_to_watch, 
+                'duration': duration}
 
     def get_genre_format(self, web_page):
         genre_format = web_page.find(
@@ -168,8 +210,9 @@ class Extractor(object):
                     days_left = left_to_watch_items[0].span.get_text()
                 duration = left_to_watch_items[1].get_text()
 
-                return days_left.encode("utf-8").strip(), duration.encode(
-                    "utf-8").strip()
+            return {'days_left_to_watch': days_left.encode("utf-8").strip(), 
+                       'duration': duration.encode(
+                    "utf-8").strip()}
         return None, None
 
     def get_long_synopsis(self, web_page):
@@ -182,7 +225,7 @@ class Extractor(object):
             ]
         else:
             long_synopsis_paragraphs = None
-        return long_synopsis_paragraphs
+        return {'long_synopsis': long_synopsis_paragraphs}
 
     def get_broadcast_info(self, web_page):
         main_broadcast = web_page.find(
@@ -233,7 +276,11 @@ class Extractor(object):
             else:
                 time_last_aired = None
 
-            return channel_text, channel_link, date_last_aired, time_last_aired
+            return {'channel_text': channel_text, 
+                    'channel_link': channel_link, 
+                    'date_last_aired': date_last_aired, 
+                    'time_last_aired': time_last_aired}
+
         else:
             return None, None, None, None
 
@@ -283,7 +330,7 @@ class Extractor(object):
             })
 
         if episodes_link is not None:
-            episodes_link = episodes_link['href']
+            episodes_link = episodes_link['hrrf']
 
             episodes_available_dict = {'episodes': {}}
 
