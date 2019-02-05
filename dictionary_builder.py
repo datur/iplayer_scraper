@@ -20,7 +20,7 @@ class DictionaryBuilder(object):
 
     def add(self, vlaue):
         self.parent_dict.update(value)
-        pass
 
     def remove():
         pass
+
