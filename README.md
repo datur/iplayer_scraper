@@ -15,7 +15,10 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
     [ ] add convienience functions for classes
     [/] add a dict class for building and __repr__ method
     [ ] add imdbpy supposrt for finding the program id and getting some basic info
-
+    [ ] Extract series information from the episodes -> all tab (this might be a better way to extract the episodes information.)
+    [ ] search for the item using the rotten tomatoes api to find some reviews and a rating
+    [ ] search the items on the imdb api to get an id that can allow for easier integration with the main system 
+    
 # features
 
     Json Structure

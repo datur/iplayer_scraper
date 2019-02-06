@@ -9,6 +9,9 @@ class DictionaryBuilder(object):
 
         self.parent_dict = {}
 
+    def print(self):
+        print(self.parent_dict)
+
     def to_json(self):
         pass
 
@@ -18,9 +21,8 @@ class DictionaryBuilder(object):
         except:
             print('key not valid')
 
-    def add(self, vlaue):
+    def add(self, value):
         self.parent_dict.update(value)
 
     def remove():
         pass
-
