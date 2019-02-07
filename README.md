@@ -1,26 +1,15 @@
-# iplayer scraper
+# Iplayer Scraper v0.1
 
-SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
+SImple iplayer scraper using python with BeautifulSoup and MechanicalSoup
+Currently implimented:
+- Extraction A through Z of each entry at http://bbc.co.uk/iplayer/a-z
+- Dump this information into a Json file in the format below
 
-# TODO:
-
-    [/] Dictionary building for each object in Json Structure
-    [X] Refactoring current code into methods
-    [X] Finish episode page navigation if more than one page of episodes
-    [X] Loop through alphabet
-    [X] Save to Json
-    [X] Format and clean up file
-    [X] finish class implimentation
-    [X] file writing
-    [X] add convienience functions for classes
-    [/] add a dict class for building and __repr__ method
-    [ ] add imdbpy supposrt for finding the program id and getting some basic info
-    [ ] Extract series information from the episodes -> all tab (this might be a better way to extract the episodes information.)
-    [ ] search for the item using the rotten tomatoes api to find some reviews and a rating
-    [ ] search the items on the imdb api to get an id that can allow for easier integration with the main system
-    [ ] show time remaining on script based on time to complete one alphabet
-
-# features
+Planned features:
+- intrgration with imdbpy
+- more rich series information from other sources
+- integration with rotten tomatoes for the more popular shows
+- more
 
     Json Structure
 

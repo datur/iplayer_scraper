@@ -1,4 +1,5 @@
-# extractor class
+# extractor class for iplayer scraper v0.1
+
 from bs4 import BeautifulSoup
 from browser_class import Browser
 from dictionary_builder import DictionaryBuilder

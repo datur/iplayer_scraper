@@ -1,3 +1,4 @@
+# browser class for iplayer scraper v0.1
 import mechanicalsoup
 
 
