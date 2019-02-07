@@ -11,6 +11,8 @@ Planned features:
 - integration with rotten tomatoes for the more popular shows
 - more
 
+
+
     Json Structure
 
     {
