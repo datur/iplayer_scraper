@@ -16,3 +16,4 @@ class Browser(object):
 
     def get_url(self):
         return self.current_url
+

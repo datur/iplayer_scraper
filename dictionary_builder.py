@@ -12,9 +12,6 @@ class DictionaryBuilder(object):
     def print(self):
         print(self.parent_dict)
 
-    def to_json(self):
-        pass
-
     def update(self, key, value):
         try:
             self.parent_dict[key].update(value)
@@ -24,5 +21,9 @@ class DictionaryBuilder(object):
     def add(self, value):
         self.parent_dict.update(value)
 
-    def remove():
-        pass
+    def to_json(self):
+        return json.dumps(self.parent_dict)
+
+    def to_file(self, file_name):
+        with open(file_name, 'w') as f:
+            json.dump(self.parent_dict, f)

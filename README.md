@@ -8,17 +8,18 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
     [X] Refactoring current code into methods
     [X] Finish episode page navigation if more than one page of episodes
     [X] Loop through alphabet
-    [ ] Save to Json
-    [/] Format and clean up file
-    [ ] finish class implimentation
-    [ ] file writing
-    [ ] add convienience functions for classes
+    [X] Save to Json
+    [X] Format and clean up file
+    [X] finish class implimentation
+    [X] file writing
+    [X] add convienience functions for classes
     [/] add a dict class for building and __repr__ method
     [ ] add imdbpy supposrt for finding the program id and getting some basic info
     [ ] Extract series information from the episodes -> all tab (this might be a better way to extract the episodes information.)
     [ ] search for the item using the rotten tomatoes api to find some reviews and a rating
-    [ ] search the items on the imdb api to get an id that can allow for easier integration with the main system 
-    
+    [ ] search the items on the imdb api to get an id that can allow for easier integration with the main system
+    [ ] show time remaining on script based on time to complete one alphabet
+
 # features
 
     Json Structure
@@ -31,7 +32,6 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
             "format": {<(optional field)>},
             "no_episodes_available": 56,
             "no_episodes_upcoming": 4,
-
             "latest_episode": {
                 "title": <text: title>,
                 "broadcast_date": <text: date>,
@@ -47,7 +47,6 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
                     ...
                     ...}
                 },
-
             "ipayer_recommends": {
                 "recommendation_id": {
                     "program_name": <text: show_name>,
@@ -60,7 +59,6 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
                 ...
                 ...
                 },
-
             "episodes_available": {
                 "episode_id": {
                     "episode_name": <text: episode_name>,
@@ -77,9 +75,6 @@ SImple iplayer scraper using python with BeautifulSoup and Mechanical Soup
                  ...
                  ...
                  },
-
-
-
             "upcoming_episodes": {
                 "episode_id": {
                     "episode_name": <text: episode_name>,

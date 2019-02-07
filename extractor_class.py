@@ -2,6 +2,7 @@
 from bs4 import BeautifulSoup
 from browser_class import Browser
 from dictionary_builder import DictionaryBuilder
+from datetime import datetime
 
 
 class Extractor(object):
@@ -43,8 +44,13 @@ class Extractor(object):
                 if program_website_info['program_website_url'] is None:
                     print(program_website_info, program_info)
 
-                _id = self.get_program_id(
-                    program_website_info['program_website_url'])
+                if program_website_info['program_website_url'] is not None:
+                    _id = self.get_program_id(
+                        program_website_info['program_website_url'])
+                else:
+                    _id = self.get_program_id(
+                        program_info['latest_episode_url'], flag=False)
+
                 self.dictionary.add({_id: program_info})
                 self.dictionary.update(_id, program_website_info)
 
@@ -59,14 +65,18 @@ class Extractor(object):
                         program_website_info['program_website_url'])
                     self.dictionary.update(_id, latest_episode_info)
 
-        self.dictionary.print()
+        self.dictionary.to_file('bbc_iplayer_scraped_' +
+                                datetime.now().strftime("%Y-%m-%d %H:%M:%S") +
+                                '.json')
 
-    def get_program_id(self, url):
+    def get_program_id(self, url, flag=True):
         '''takes the program bebsite url and trturns the
         unique program id
         '''
-
-        return url.split('/')[-1]
+        if flag:
+            return url.split('/')[-1]
+        else:
+            return url.split('/')[2]
 
     def iplayer_atoz_page_extractor(self, program_selection):
         '''arguement is soup div tag for a program.
@@ -549,7 +559,7 @@ class Extractor(object):
                             'programme programme--radio programme--episode block-link'
                         })
                     if program_id is not None:
-                        program_id = Program_id['data-pid']
+                        program_id = program_id['data-pid']
                     else:
                         program_id = program_info.find(
                             'div',
