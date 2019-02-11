@@ -13,6 +13,9 @@ class DictionaryBuilder(object):
     def print(self):
         print(self.parent_dict)
 
+    def clear(self):
+        self.parent_dict = {}
+
     def update(self, key, value):
         try:
             self.parent_dict[key].update(value)
@@ -26,5 +29,6 @@ class DictionaryBuilder(object):
         return json.dumps(self.parent_dict)
 
     def to_file(self, file_name):
-        with open(file_name, 'w') as f:
+        with open(file_name, 'a') as f:
             json.dump(self.parent_dict, f)
+            f.write('\n')

@@ -19,16 +19,19 @@ class Extractor(object):
     def extract(self):
         '''main extractor method. This will return a dictionary'''
 
+        filename = str('bbc_iplayer_scraped_' +
+                       datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '.json')
+
         initial_page = self.Browser.get_page(self._BASE_URL +
                                              self._SCRAPING_SUFFIX)
-
-        navigation = initial_page.find(
-            'ul', attrs={'class': 'scrollable-nav__track'})
+        atoz = initial_page.find('div', attrs={'class': "atoz-nav__inner"})
+        navigation = atoz.find('ul', attrs={'class': 'scrollable-nav__track'})
         navigation_list = navigation.find_all('li')
         navigation_list = [
             x.a['href'] for x in navigation_list if x.a is not None
         ]
 
+        print(navigation_list)
         # Main loop for the [a-z] apges of iplayer
         for suffix in navigation_list:
             web_page = self.Browser.get_page(self._BASE_URL + suffix)
@@ -66,9 +69,8 @@ class Extractor(object):
                         program_website_info['program_website_url'])
                     self.dictionary.update(_id, latest_episode_info)
 
-        self.dictionary.to_file('bbc_iplayer_scraped_' +
-                                datetime.now().strftime("%Y-%m-%d %H:%M:%S") +
-                                '.json')
+                self.dictionary.to_file(filename)
+                self.dictionary.clear()
 
     def get_program_id(self, url, flag=True):
         '''takes the program bebsite url and trturns the
@@ -91,19 +93,27 @@ class Extractor(object):
         if title is not None:
             title = title.get_text()
         else:
-            print(program_selection)
+            title = program_selection.find(
+                'div', attrs={'class': 'content-item__title'})
+            if title is not None:
+                title = title.get_text()
         # Program Synopsis
         synopsis = program_selection.find(
-            'p', attrs={
-                'class': 'list-content-item__synopsis'
-            }).get_text()
+            'p', attrs={'class': 'list-content-item__synopsis'})
+        if synopsis is not None:
+            synopsis = synopsis.get_text()
+        else:
+            synopsis = program_selection.find(
+                'div', attrs={'class': 'content-item__description'})
+            if synopsis is not None:
+                synopsis = synopsis.get_text()
         # Link to latest episode
         latest_episode_url = program_selection.find('a', href=True)['href']
         # Number of episodes available
         episodes_available = program_selection.find(
-            'div', attrs={
-                'class': 'list-content-item__sublabels'
-            }).get_text()
+            'div', attrs={'class': 'list-content-item__sublabels'})
+        if episodes_available is not None:
+            episodes_available = episodes_available.get_text()
 
         return {
             'title': title,
@@ -114,13 +124,18 @@ class Extractor(object):
 
     def programme_website_extractor(self, latest_episode_url):
         ''' input latest_episode_url '''
+        print(latest_episode_url)
         web_page = self.Browser.get_page(latest_episode_url)
-
-        program_website_url = web_page.find(
-            'a', attrs={'class': 'lnk'}, text='Programme website')
-
-        program_credits_url = web_page.find(
-            'a', attrs={'class': 'lnk'}, text='Credits')
+        if web_page is not None:
+            program_website_url = web_page.find(
+                'a', attrs={'class': 'lnk'}, text='Programme website')
+        else:
+            program_website_url = None
+        if web_page is not None:
+            program_credits_url = web_page.find(
+                'a', attrs={'class': 'lnk'}, text='Credits')
+        else:
+            program_credits_url = None
 
         credits_available = bool(program_credits_url)
 
