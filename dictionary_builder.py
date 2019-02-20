@@ -22,8 +22,8 @@ class DictionaryBuilder(object):
         except:
             print('key not valid')
 
-    def add(self, value):
-        self.parent_dict.update(value)
+    def add_dict(self, dictionary):
+        self.parent_dict.update(dictionary)
 
     def add(self, key, value):
         self.parent_dict.update({key: value})

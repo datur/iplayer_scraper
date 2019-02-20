@@ -44,10 +44,13 @@ class Extractor(object):
             # loop for each program on the current alphabet page
             for program_box in program_selection:
 
-                next_url = self.iplayer_atoz_page_extractor(program_box)
+                latest_episode_url = self.iplayer_atoz_page_extractor(program_box)
 
-                next_url = self.programme_website_extractor(self._BASE_URL +
-                                                            next_url)
+                program_website_url = self.programme_website_extractor(self._BASE_URL +
+                                                            latest_episode_url)
+
+                # extract main information form the program website
+                
 
                 print(self.dictionary.print())
 
