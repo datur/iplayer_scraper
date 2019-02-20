@@ -44,19 +44,12 @@ class Extractor(object):
             # loop for each program on the current alphabet page
             for program_box in program_selection:
 
-                next_url - self.iplayer_atoz_page_extractor(program_box)
+                next_url = self.iplayer_atoz_page_extractor(program_box)
 
-                next_url = self.programme_website_extractor(self._BASE_URL + next_url)
-
-
-
-
-
-
+                next_url = self.programme_website_extractor(self._BASE_URL +
+                                                            next_url)
 
                 print(self.dictionary.print())
-
-
 
     def iplayer_atoz_page_extractor(self, program_selection):
         '''arguement is soup div tag for a program.
@@ -101,7 +94,10 @@ class Extractor(object):
 
         self.dictionary.add('title', title)
         self.dictionary.add('short_synopsis', synopsis)
-        self.dictionary.add('episodes_available', episodes_available.split(' ')[0] if not None)
+        self.dictionary.add(
+            'episodes_available',
+            episodes_available.split(' ')[0]
+            if episodes_available is not None else None)
 
         return latest_episode_url
 
@@ -114,15 +110,10 @@ class Extractor(object):
             program_website_url = web_page.find(
                 'a', attrs={'class': 'lnk'}, text='Programme website')
         else:
-            print(latest_episode_url)
-
-
-        credits_available = bool(program_credits_url)
-
+            print('\n\n\n', latest_episode_url, '\n\n\n')
 
         if program_website_url:
             program_website_url = program_website_url['href']
-
 
         return program_website_url
 
