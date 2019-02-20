@@ -40,3 +40,4 @@
             = go through and get all available episodes and follow link for longer synopsis and credits and genre format
             - go through upcoming episodes if available
             - go through all tab for more indepth series information
+			- get music played on episode
