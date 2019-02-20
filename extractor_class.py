@@ -24,22 +24,29 @@ class Extractor(object):
 
         initial_page = self.Browser.get_page(self._BASE_URL +
                                              self._SCRAPING_SUFFIX)
+
         atoz = initial_page.find('div', attrs={'class': "atoz-nav__inner"})
+
         navigation = atoz.find('ul', attrs={'class': 'scrollable-nav__track'})
+
         navigation_list = navigation.find_all('li')
+
         navigation_list = [
             x.a['href'] for x in navigation_list if x.a is not None
         ]
 
-        print(navigation_list)
         # Main loop for the [a-z] apges of iplayer
+
         for suffix in navigation_list:
+
             web_page = self.Browser.get_page(self._BASE_URL + suffix)
+
             program_selection = web_page.find_all(
                 'li', attrs={"class": "grid__item"})
 
             # loop for each program on the current alphabet page
             for program_box in program_selection:
+
                 program_info = self.iplayer_atoz_page_extractor(program_box)
 
                 program_website_info = self.programme_website_extractor(
@@ -73,7 +80,7 @@ class Extractor(object):
                 self.dictionary.clear()
 
     def get_program_id(self, url, flag=True):
-        '''takes the program bebsite url and trturns the
+        '''takes the program bebsite url and returns the
         unique program id
         '''
         if flag:

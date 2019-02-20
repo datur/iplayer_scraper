@@ -18,7 +18,7 @@
 		[ ] go through the credits entities and search for a credit [ ] matching show name
 	[ ] get credits people imdb id
 	[ ] complete
-	[ ] tvdb search function
+	[/] tvdb search function
 	[ ] scrape bbc by series
 	[ ] fix ccbc entries
 	[ ] brand -> series -> episode

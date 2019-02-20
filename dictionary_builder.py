@@ -25,6 +25,9 @@ class DictionaryBuilder(object):
     def add(self, value):
         self.parent_dict.update(value)
 
+    def add(self, key, value):
+        self.parent_dict.update({key: value})
+
     def to_json(self):
         return json.dumps(self.parent_dict)
 
