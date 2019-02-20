@@ -69,12 +69,9 @@ class tvdb(object):
         show_id = str(search_result['data'][0]['id'])
         search_result = self.search(show_id, search_type='id')
 
-        # TODO: then search using this id to get imdb id
-
     def get_actors(self, search_term):
         ''' returns actors starring in the selected show '''
-        search_result = self.search(search_term, 'episodes')
-        print(search_result)
+        search_result = self.search(search_term, 'actors')
 
 
 # testing
