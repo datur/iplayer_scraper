@@ -47,12 +47,12 @@ class Extractor(object):
                 latest_episode_url = self.iplayer_atoz_page_extractor(program_box)
 
                 program_website_url = self.latest_episode_extractor(self._BASE_URL +
-                                                            latest_episode_url)
+                                                                    latest_episode_url)
 
                 # extract main information form the program website
                 self.program_microsite_extractor(program_website_url)
 
-                print(self.dictionary.print())
+                self.dictionary.print()
 
     def iplayer_atoz_page_extractor(self, program_selection):
         '''arguement is soup div tag for a program.
@@ -151,7 +151,7 @@ class Extractor(object):
 
             genre_format_dict = {'genre': {}}
 
-            # TODO this should be re-written into lists of dictionaries also handle multiple sub genres better 
+            # TODO this should be re-written into lists of dictionaries also handle multiple sub genres better
 
             for i in range(len(genre_format_list)):
                 for j in range(len(genre_format_list[i])):
@@ -194,7 +194,8 @@ class Extractor(object):
                             })
             return genre_format_dict
 
-#testing
+# testing
+
 
 X = Extractor()
 

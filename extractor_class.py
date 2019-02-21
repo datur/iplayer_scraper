@@ -471,7 +471,7 @@ class Extractor(object):
 
         episodes_available_dict = {}
 
-        #TODO: fix this implimentation
+        # TODO: fix this implimentation
         for item in episodes_container_list:
             # link
 
