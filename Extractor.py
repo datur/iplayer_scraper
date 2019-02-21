@@ -46,11 +46,11 @@ class Extractor(object):
 
                 latest_episode_url = self.iplayer_atoz_page_extractor(program_box)
 
-                program_website_url = self.programme_website_extractor(self._BASE_URL +
+                program_website_url = self.latest_episode_extractor(self._BASE_URL +
                                                             latest_episode_url)
 
                 # extract main information form the program website
-                
+                self.program_microsite_extractor(program_website_url)
 
                 print(self.dictionary.print())
 
@@ -104,7 +104,7 @@ class Extractor(object):
 
         return latest_episode_url
 
-    def programme_website_extractor(self, latest_episode_url):
+    def latest_episode_extractor(self, latest_episode_url):
         ''' input latest_episode_url '''
 
         web_page = self.Browser.get_page(latest_episode_url)
@@ -120,6 +120,79 @@ class Extractor(object):
 
         return program_website_url
 
+    def program_microsite_extractor(self, program_website_url):
+        ''' gets information from the programmes microsite '''
+        web_page = self.Browser.get_page(self._BASE_URL + program_website_url)
+
+        genre_format = self.get_genre_format(web_page)
+
+        print(genre_format)
+
+    # TODO this needs rewriting asap
+    def get_genre_format(self, web_page):
+        genre_format = web_page.find(
+            'div', attrs={'class': 'footer__similar b-g-p component'})
+
+        if genre_format is None:
+            genre_format = web_page.find(
+                'div',
+                attrs={
+                    'class':
+                    'islet--horizontal footer__programmes footer__service-island'
+                })
+
+        if genre_format is not None:
+            sim = genre_format.find_all('div')
+            genre_format_list = []
+
+            for i in sim:
+                genre_format_list.append([[x.get_text(), x['href']]
+                                          for x in i.find_all('a', href=True)])
+
+            genre_format_dict = {'genre': {}}
+
+            # TODO this should be re-written into lists of dictionaries also handle multiple sub genres better 
+
+            for i in range(len(genre_format_list)):
+                for j in range(len(genre_format_list[i])):
+                    if i == 0:
+                        if j < 1:
+                            genre_format_dict['genre'].update({
+                                'main': {
+                                    str(j): genre_format_list[i][j][0],
+                                    'link': genre_format_list[i][j][1]
+                                }
+                            })
+                        elif j == 1:
+                            genre_format_dict['genre'].update({
+                                'sub_genre': {
+                                    str(j): genre_format_list[i][j][0],
+                                    'link': genre_format_list[i][j][1]
+                                }
+                            })
+                        else:
+                            genre_format_dict['genre']['sub_genre'].update({
+                                str(j):
+                                genre_format_list[i][j][0],
+                                'link':
+                                genre_format_list[i][j][1]
+                            })
+                    else:
+                        if j < 1:
+                            genre_format_dict.update({
+                                'format': {
+                                    str(j): genre_format_list[i][j][0],
+                                    'link': genre_format_list[i][j][1]
+                                }
+                            })
+                        else:
+                            genre_format_dict['format'].update({
+                                'sub_format': {
+                                    str(j): genre_format_list[i][j][0],
+                                    'link': genre_format_list[i][j][1]
+                                }
+                            })
+            return genre_format_dict
 
 #testing
 
