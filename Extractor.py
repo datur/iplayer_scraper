@@ -329,6 +329,17 @@ class Extractor(object):
 
             episode_web_page = self.Browser.get_page(episode_link)
 
+            # find map__inner br-box-secondary
+            # find island where synopsis is kept
+            # find grid 1/3@bpw2 1/3@bpe map__column map__column--2 map__column--last
+            # find br-box-secondary containing the last broadcast infomration
+            # find broadcast information component component--box component--box--primary
+            # get genre
+            # get credits
+
+            # list of mucic played list-unstyled segments-list__items
+            # get time left to watch and duration
+
             episodes_list.append(episode_dict)
 
         self.dictionary.add('episodes', episodes_list)
