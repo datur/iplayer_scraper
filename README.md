@@ -30,11 +30,11 @@
     major restructure is required as current structure does not make sense
 
     full extract structure as follows:
-        = loop a through z
-            = loop through each program on current alphabet entry
-            = get latest episode url / get program general info ie name, and short synopsis
-            = visit latest episode site to access program website
-                = if program website unavailable then get info from curr page
+        = loop a through z -> This works currently
+            = loop through each program on current alphabet entry -> this works currently
+            = get latest episode url / get program general info ie name, and short synopsis -> currently works
+            = visit latest episode site to access program website -> currently works
+                = if program website unavailable then get info from curr page -> ongoing
             = from program website get - long synopsis, airing information, recommendations, genre, format
             = visit episode section if available
             = go through and get all available episodes and follow link for longer synopsis and credits and genre format

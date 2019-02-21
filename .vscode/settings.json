@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "/Users/davidturner/anaconda3/envs/web/bin/python",
+    "python.formatting.autopep8Path": "autopep8",
+    "python.formatting.autopep8Args": ["--max-line-length", "100", "--experimental"],
+    "editor.formatOnSave": true
+}

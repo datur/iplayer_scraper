@@ -1,0 +1,21 @@
+.DS_Store
+.7daylimited.xml.swp
+.README.md.swp
+.xml_parser.py.swp
+7daylimited.xml
+bbc_iplayer_scraped_2019-02-11 12:49:34.json
+bbc_iplayer_scraped_2019-02-11 12:51:01.json
+bbc_iplayer_scraped_2019-02-11 20:04:28.json
+browser_class.pyc
+extractor_class.pyc
+.ipynb_checkpoints/Iplayerscraper-v2-checkpoint.ipynb
+__pycache__/browser_class.cpython-37.pyc
+__pycache__/dictionary_builder.cpython-37.pyc
+__pycache__/extractor_class.cpython-37.pyc
+__pycache__/imdb_class.cpython-37.pyc
+__pycache__/rotten_tomatoes.cpython-37.pyc
+homework/persona.aiml
+notes/homework1.md
+notes/meeting3.md
+notes/nlu.md
+notes/speech_graphics.md
