@@ -329,8 +329,36 @@ class Extractor(object):
 
             episode_web_page = self.Browser.get_page(episode_link)
 
-            # find map__inner br-box-secondary
+            main_episode_info = episode_web_page.find(
+                'div', attrs={'class': 'grid-wrapper grid-wrapper--flush map map--episode map--count-2'})
+
+            episode_longest_synopsis = main_episode_info.find(
+                'div', attrs={'class': 'text--prose longest-synopsis'})
+
+            series_id = main_episode_info.find('div', attrs={'class': 'offset'}).find_all('a')
+            series_id = series_id[-1]['href']
+            series_name = series_id[-1].get_text()
+
+            left_to_watch = web_page.find(
+                'div', attrs={'class': 'grid 1/3@bpw 1/4@bpe'})
+
+            if left_to_watch is not None:
+                left_to_watch_items = left_to_watch.find_all(
+                    'p', attrs={'class': 'episode-panel__meta'})
+
+                if left_to_watch.find(
+                        'div', attrs={'class': "episode-panel__meta"}) is None:
+                    if left_to_watch_items[0].span is None:
+                        days_left = left_to_watch_items[0].get_text()
+                    else:
+                        days_left = left_to_watch_items[0].span.get_text()
+                    duration = left_to_watch_items[1].get_text()
+
+            # grid 1/3@bpw 1/4@bpe - broadcast information
+
+            # find grid-wrapper grid-wrapper--flush map map--episode map--count-2 (main episode info)
             # find island where synopsis is kept
+
             # find grid 1/3@bpw2 1/3@bpe map__column map__column--2 map__column--last
             # find br-box-secondary containing the last broadcast infomration
             # find broadcast information component component--box component--box--primary
