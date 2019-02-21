@@ -328,7 +328,6 @@ class Extractor(object):
             episode_dict[_id].update({'episode_time_left': episode_time_left})
 
             episode_web_page = self.Browser.get_page(episode_link)
-            
 
             episodes_list.append(episode_dict)
 
