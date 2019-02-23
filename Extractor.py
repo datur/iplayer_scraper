@@ -354,19 +354,36 @@ class Extractor(object):
                         days_left = left_to_watch_items[0].span.get_text()
                     duration = left_to_watch_items[1].get_text()
 
-            # grid 1/3@bpw 1/4@bpe - broadcast information
+            '''
+            TODO: drill down from each of these main tag containers to get the info needed
+            in the code below need to get next on if available last on, credits, credits, episode music
+            supporting items ie podcast information and enrichers, and the genre.
+            '''
 
-            # find grid-wrapper grid-wrapper--flush map map--episode map--count-2 (main episode info)
-            # find island where synopsis is kept
+            # Last on next on section
+            last_on_next_on = episode_web_page.find(
+                'div', attrs={'class': 'grid 1/3@bpw2 1/3@bpe map__column map__column--2 map__column--last'})
 
-            # find grid 1/3@bpw2 1/3@bpe map__column map__column--2 map__column--last
-            # find br-box-secondary containing the last broadcast infomration
-            # find broadcast information component component--box component--box--primary
-            # get genre
-            # get credits
+            last_on = last_on_next_on.find(
+                'div', attrs={'data-map-column': 'tx', 'class': 'br-box-secondary'})
 
-            # list of mucic played list-unstyled segments-list__items
-            # get time left to watch and duration
+            next_on = last_on_next_on.find(
+                'div',
+                attrs={'class': 'br-box-secondary map__column map__fauxcolumn',
+                       'data-map-column': 'more'})
+
+            # role credits and music credits also contains featured in - for boxsets ie soaps
+            credits_box = episode_web_page.find(
+                'div', attrs={'class': 'grid grid--bounded 13/24@bpw2 13/24@bpe'})
+
+            credits_list = self.get_credits(credits_box)
+
+            # promo and supporting material
+            supporting_items = episode_web_page.find(
+                'div', attrs={'class': 'grid grid--bounded 11/24@bpw2 11/24@bpe'})
+
+            genre_location = episode_web_page.find(
+                'div', attrs={'class': 'grid grid--flush 1/2@bpw 1/4@bpw2 1/4@bpe'})
 
             episodes_list.append(episode_dict)
 
@@ -484,6 +501,13 @@ class Extractor(object):
 
                 next_up.append(temp_dict)
             return next_up
+
+    def get_credits(self, web_page):
+
+        credits_table = web_page.find(
+            'table', attrs={'class': 'table table--slatted-vertical no-margin-vertical'})
+
+        return 0
 
     # TODO this needs rewriting asap
 
