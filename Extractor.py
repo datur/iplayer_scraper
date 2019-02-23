@@ -530,6 +530,35 @@ class Extractor(object):
     def get_left_to_watch(self, web_page):
         pass
 
+    def extract_childrens(self, web_page):
+        '''function to extract infomration from other page formats relating to cbeebies and cbbc
+
+        Arguments:
+            web_page {soup div tag} -- html content
+
+        container for both related content and episode list content : div tag class : content-collection-sections__list
+        separated into two list tags
+
+        episodes    - id : episodes-container
+                    - class: content-collection-sections__item content-collection-section content-collection-section--episodes pocket pocket--closed
+
+                    follow link -> and then scrape:
+                        container - gel-layout__item gel-1/2@xxl gel-7/12@l gel-8/12@m gel-1/1@xs
+                            synopsis : synopsis typo typo--canary
+                            duration first shown and available : inline-list episode-metadata typo--canary
+
+        program availability - 'class; : 'programme-info__availability'
+        extra content - 'class' : 'content-collection-page__sections
+
+
+        if on program website div class : menu__product ['href] is /cbbc
+        then use this function
+
+
+        '''
+
+        pass
+
     # TODO this needs rewriting asap
 
     def get_genre_format(self, web_page):
