@@ -502,12 +502,33 @@ class Extractor(object):
                 next_up.append(temp_dict)
             return next_up
 
-    def get_credits(self, web_page):
+    def get_episode_credits(self, web_page):
 
         credits_table = web_page.find(
             'table', attrs={'class': 'table table--slatted-vertical no-margin-vertical'})
 
         return 0
+
+    def get_episode_music(self, web_page):
+        pass
+
+    def get_boadcast_info(self, web_page):
+        pass
+
+    def get_featured_in(self, web_page):
+        pass
+
+    def get_episode_supportingitems(self, web_page):
+        pass
+
+    def get_last_on(self, web_page):
+        pass
+
+    def get_next_on(self, web_page):
+        pass
+
+    def get_left_to_watch(self, web_page):
+        pass
 
     # TODO this needs rewriting asap
 
