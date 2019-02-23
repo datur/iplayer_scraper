@@ -41,3 +41,19 @@
             - go through upcoming episodes if available
             - go through all tab for more indepth series information
             - get music played on episode
+
+
+## Testing TODO
+
+Shows to test
+
+    bbc one show:   https://www.bbc.co.uk/programmes/b0bxbvtl
+                    https://www.bbc.co.uk/programmes/b006m86d
+
+    one off show:   https://www.bbc.co.uk/programmes/p00sydsh
+                    https://www.bbc.co.uk/programmes/b0645530
+
+    cbbc and cbbies:https://www.bbc.co.uk/cbbc/shows/all-over-the-place
+
+    film:           https://www.bbc.co.uk/programmes/b05nbsc4
+                    https://www.bbc.co.uk/iplayer/episode/p06zb13p/it-follows
