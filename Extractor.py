@@ -252,6 +252,9 @@ class Extractor(object):
 
             episodes_link = episodes_link['href']
 
+            # debug
+            print(episodes_link)
+
             episodes_page = self.Browser.get_page(self._BASE_URL +
                                                   episodes_link)
 
@@ -274,13 +277,13 @@ class Extractor(object):
                     episodes_page = self.Browser.get_page(url)
                     episodes_available.append(self.episode_list_extractor(episodes_page))
 
-            # next_on = episodes_page.find(
-            #     'ul', attrs={
-            #         'class': 'list-unstyled cf delta'
-            #     }).find_all('li')
+            next_on = episodes_page.find(
+                'ul', attrs={
+                    'class': 'list-unstyled cf delta'
+                }).find_all('li')
 
-            # if next_on[-1].a:
-            #     episodes_upcoming = self.upcoming_episodes(next_on[-1].a)
+            if next_on[-1].a:
+                episodes_upcoming = self.upcoming_episodes(next_on[-1].a)
 
     def episode_list_extractor(self, web_page):
 
@@ -290,7 +293,6 @@ class Extractor(object):
 
         episodes_list = []
 
-        # TODO: fix this
         # TODO need to go through each episode and extract credits
 
         for item in episodes_container_list:
@@ -298,15 +300,18 @@ class Extractor(object):
 
             _id = item['data-pid']
 
-            episode_dict = {_id: {}}
+            episode_dict = {'episode': {}}
+
+            episode_dict['episode'].update({'id': _id})
 
             episode_link = item.find('a', attrs={'class': 'br-blocklink__link block-link__target'})
             episode_link = episode_link['href']
-            episode_dict[_id].update({'episode_link': episode_link})
+            episode_dict['episode'].update({'episode_link': episode_link})
 
             episode_title = item.find('span', attrs={'class': 'programme__title gamma'})
+
             episode_title = episode_title.get_text()
-            episode_dict[_id].update({'episode_title': episode_title})
+            episode_dict['episode'].update({'episode_title': episode_title})
 
             episode_synopsis = item.find(
                 'p', attrs={'class': 'programme__synopsis text--subtle centi'})
@@ -317,15 +322,15 @@ class Extractor(object):
                 series_num_episodes = episode_synopsis.find('abbr').find(
                     'span', attrs={'class': 'programme__groupsize'}).get_text()
 
-                episode_dict[_id].update({'series_position': series_position})
-                episode_dict[_id].update({'series_num_episodes': series_num_episodes})
+                episode_dict['episode'].update({'series_position': series_position})
+                episode_dict['episode'].update({'series_num_episodes': series_num_episodes})
 
             episode_synopsis = episode_synopsis.find('span', recursive=False).get_text()
-            episode_dict[_id].update({'episode_synopsis': episode_synopsis})
+            episode_dict['episode'].update({'episode_synopsis': episode_synopsis})
 
             episode_time_left = item.find('div', attrs={'class': 'cta cta__overlay'})
             episode_time_left = episode_time_left.a['title']
-            episode_dict[_id].update({'episode_time_left': episode_time_left})
+            episode_dict['episode'].update({'episode_time_left': episode_time_left})
 
             episode_web_page = self.Browser.get_page(episode_link)
 
@@ -335,9 +340,14 @@ class Extractor(object):
             episode_longest_synopsis = main_episode_info.find(
                 'div', attrs={'class': 'text--prose longest-synopsis'})
 
-            series_id = main_episode_info.find('div', attrs={'class': 'offset'}).find_all('a')
-            series_id = series_id[-1]['href']
-            series_name = series_id[-1].get_text()
+            series_id = main_episode_info.find('div', attrs={'class': 'offset'})
+
+            if series_id is not None:
+                series_id_name = series_id.find_all('a')
+                series_id = series_id_name[-1]['href']
+                episode_dict['episode'].update({'series_id': series_id.split('/')[-1]})
+                series_name = series_id_name[-1].get_text()
+                episode_dict['episode'].update({'series_name': series_name})
 
             left_to_watch = web_page.find(
                 'div', attrs={'class': 'grid 1/3@bpw 1/4@bpe'})
@@ -376,7 +386,9 @@ class Extractor(object):
             credits_box = episode_web_page.find(
                 'div', attrs={'class': 'grid grid--bounded 13/24@bpw2 13/24@bpe'})
 
-            credits_list = self.get_credits(credits_box)
+            credits_dict = self.get_episode_credits(credits_box)
+
+            episode_dict['episode'].update({"credits": credits_dict})
 
             # promo and supporting material
             supporting_items = episode_web_page.find(
@@ -507,7 +519,16 @@ class Extractor(object):
         credits_table = web_page.find(
             'table', attrs={'class': 'table table--slatted-vertical no-margin-vertical'})
 
-        return 0
+        if credits_table:
+            credits_dict = {}
+            for row in credits_table.find_all('tr'):
+                person = row.find_all('span')
+                if len(person) > 1:
+                    json_credits = [x.get_text() for x in person]
+                    credits_dict[json_credits[0]] = json_credits[1]
+            return credits_dict
+        else:
+            return None
 
     def get_episode_music(self, web_page):
         pass
@@ -628,7 +649,3 @@ class Extractor(object):
 
 
 # testing
-
-X = Extractor()
-
-X.extract()
