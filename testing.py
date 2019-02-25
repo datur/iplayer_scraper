@@ -16,8 +16,12 @@ def test(url):
 X = Extractor()
 B = Browser()
 
+
 url1 = '/programmes/b0bxbvtl'
-url2 = 'https://www.bbc.co.uk/programmes/p02b4jth'
+url2 = '/programmes/p02b4jth'
+eastenders = '/programmes/b006m86d'
 
 
-test(url=url1)
+# test(url=url1)
+# test(url=url2)
+test(eastenders)
