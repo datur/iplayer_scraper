@@ -5,7 +5,8 @@ from datetime import datetime
 
 
 class Extractor(object):
-    """docstring for Extractor"""
+    ''' main extractor class for the bbc iplayer scraper
+    '''
 
     def __init__(self):
         super(Extractor, self).__init__()
@@ -123,17 +124,12 @@ class Extractor(object):
         ''' gets information from the programmes microsite '''
         web_page = self.Browser.get_page(self._BASE_URL + program_website_url)
 
-        genre_format = self.get_genre_format(web_page)
+        # todo: check for channel then execute kids show extractor
 
-        ''' TODO:
-        - program medium synopsis
-          this is held in: p-g-p no-margin-vertical ->
-          first div tag with tag id grid__item map__item 1/2@gel3b
-        - in the second div there are two sections containing now on
-          ipayer and on tv which shows upcoming episodes
-        - you may also like section would be nice to have to add
-          to the recommendations
-        '''
+        genres, formats = self.get_genre(web_page)
+        self.dictionary.add('genre', genres)
+        self.dictionary.add('format', formats)
+
         try:
             self.program_synopsis(web_page)
         except Exception as e:
@@ -223,6 +219,7 @@ class Extractor(object):
                 list_items = page_items.find_all('li')
 
                 for item in list_items:
+                    tmp_dict = {}
                     item_info = item.find(
                         'div', attrs={'class': 'programme__body'})
                     link = item_info.h4.a['href']
@@ -230,13 +227,16 @@ class Extractor(object):
                     # link_2 = item_info.h4.a['resource']
                     title = item_info.h4.a.get_text()
                     synop = item_info.p.get_text()
+                    episode_microsite = self.episode_microsite_extractor(self._BASE_URL + link)
 
-                    recommendations.append({
+                    tmp_dict.update({
                         'id': _id,
                         'title': title,
                         'synopsis': synop,
                         'link': link
                     })
+                    tmp_dict.update(episode_microsite)
+                    recommendations.append(tmp_dict)
                 self.dictionary.add('recommendations', recommendations)
 
     def episodes(self, web_page):
@@ -253,7 +253,7 @@ class Extractor(object):
             episodes_link = episodes_link['href']
 
             # debug
-            #print(episodes_link)
+            # print(episodes_link)
 
             episodes_page = self.Browser.get_page(self._BASE_URL +
                                                   episodes_link)
@@ -331,6 +331,7 @@ class Extractor(object):
             episode_time_left = episode_time_left.a['title']
             episode_dict['episode'].update({'episode_time_left': episode_time_left})
 
+            # TODO this should be refactored
             episode_web_page = self.Browser.get_page(episode_link)
 
             main_episode_info = episode_web_page.find(
@@ -338,8 +339,11 @@ class Extractor(object):
 
             episode_longest_synopsis = main_episode_info.find(
                 'div', attrs={'class': 'text--prose longest-synopsis'})
-
-            #print(episode_longest_synopsis)
+            if episode_longest_synopsis is not None:
+                episode_longest_synopsis = episode_longest_synopsis.find_all('p')
+                episode_longest_synopsis = ' '.join(
+                    [x.get_text() for x in episode_longest_synopsis])
+                episode_dict['episode'].update({'long_synopsis': episode_longest_synopsis})
 
             series_id = main_episode_info.find('div', attrs={'class': 'offset'})
 
@@ -349,7 +353,6 @@ class Extractor(object):
                 episode_dict['episode'].update({'series_id': series_id.split('/')[-1]})
                 series_name = series_id_name[-1].get_text()
                 episode_dict['episode'].update({'series_name': series_name})
-
 
             left_to_watch_dict = self.get_left_to_watch(episode_web_page)
             # this needs refactoring into a METHOD
@@ -370,8 +373,7 @@ class Extractor(object):
                 'div', attrs={'data-map-column': 'tx', 'class': 'br-box-secondary'})
 
             last_broadcast = self.get_last_on(last_on)
-            episode_dict['episode'].update({'broadcast':{'last_on': last_broadcast}})
-
+            episode_dict['episode'].update({'broadcast': {'last_on': last_broadcast}})
 
             # role credits and music credits also contains featured in - for boxsets ie soaps
             credits_box = episode_web_page.find(
@@ -390,30 +392,26 @@ class Extractor(object):
             supporting_items_dict = self.get_episode_supportingitems(supporting_items)
             episode_dict['episode'].update({'supporting_content': supporting_items_dict})
 
-            genre_location = episode_web_page.find(
-                'div', attrs={'class': 'grid grid--flush 1/2@bpw 1/4@bpw2 1/4@bpe'})
-
-            genre_format = self.get_genre_format(genre_location)
-            episode_dict['episode'].update(genre_format)
+            genres, formats = self.get_genre(episode_web_page)
+            episode_dict['episode'].update({'genre': genres, 'format': formats})
 
             featured_in_dict = self.get_featured_in(episode_web_page)
-            episode_dict['episode'].update({'collection':featured_in_dict})
+            episode_dict['episode'].update({'collection': featured_in_dict})
 
             episode_broadcasts = self.get_boadcast_info(episode_web_page)
-            episode_dict['episode']['broadcast'].update({'previous_broadcasts':episode_broadcasts})
-
+            episode_dict['episode']['broadcast'].update({'previous_broadcasts': episode_broadcasts})
 
             episodes_list.append(episode_dict)
 
-        self.dictionary.add('episodes', {'available':episodes_list})
+        self.dictionary.add('episodes', {'available': episodes_list})
 
         return episodes_list
 
-    #TODO navigate to the episode page & scrape
+    # TODO navigate to the episode page & scrape
     def upcoming_episodes(self, url):
         '''next_on_suffix = 'broadcasts/upcoming/'''
         web_page = self.Browser.get_page(self._BASE_URL + url)
-        
+
         next_on_section = web_page.find(
             'ol', attrs={'class': 'highlight-box-wrapper'})
 
@@ -500,22 +498,25 @@ class Extractor(object):
                     series = None
                 program_synopsis = program_info.p.get_text()
 
+                microsite_info = self.episode_microsite_extractor(program_link, upcoming=True)
+
                 temp_dict = {
                     'id': program_id.strip(),
-                        'program_title': program_title.strip(),
-                        'series': series,
-                        'program_synopsis': program_synopsis.strip(),
-                        'program_link': program_link,
-                        'channel': {
-                            'name': channel,
-                            'link': channel_url
-                        },
-                        'broadcast': {
-                            'date': broadcast_date,
-                            'day': broadcast_day,
-                            'time': broadcast_time
-                        }
+                    'program_title': program_title.strip(),
+                    'series': series,
+                    'program_synopsis': program_synopsis.strip(),
+                    'program_link': program_link,
+                    'channel': {
+                        'name': channel,
+                        'link': channel_url
+                    },
+                    'broadcast': {
+                        'date': broadcast_date,
+                        'day': broadcast_day,
+                        'time': broadcast_time
                     }
+                }
+                temp_dict.update(microsite_info)
 
                 next_up.append(temp_dict)
             self.dictionary.update('episodes', {'next_up': next_up})
@@ -539,24 +540,33 @@ class Extractor(object):
 
     def get_episode_music(self, web_page):
 
-        music_location = web_page.find('div', attrs={'class':'component component--box component--box-flushbody-vertical component--box--primary', 'id':'segments'})
+        music_location = web_page.find(
+            'div',
+            attrs={
+                'class':
+                'component component--box component--box-flushbody-vertical component--box--primary',
+                'id': 'segments'})
         if music_location is not None:
-            music_list = music_location.find('ul', attrs={'class':'list-unstyled segments-list__items'})
+            music_list = music_location.find(
+                'ul', attrs={'class': 'list-unstyled segments-list__items'})
 
             if music_list is not None:
-                music_dict=[]
+                music_dict = []
 
                 for music in music_list.find_all('li'):
-                    info = music.find('div', attrs={'class':'segment__track'})
-                    time_stamp = info.find('div', attrs={'class':'text--subtle pull--right-spaced'})['aria-label']
-                    artist = info.find('h3',attrs={'class':'gamma no-margin'})
-                    artist_url = artist.a['href']
-                    artist = artist.find('span',attrs={'class':'artist'}).get_text()
+                    info = music.find('div', attrs={'class': 'segment__track'})
+                    time_stamp = info.find(
+                        'div', attrs={'class': 'text--subtle pull--right-spaced'})['aria-label']
+                    artist = info.find('h3', attrs={'class': 'gamma no-margin'})
+
+                    artist_url = artist.a['href'] if artist.a is not None else None
+
+                    artist = artist.find('span', attrs={'class': 'artist'}).get_text()
                     track = info.find('p', attrs={'class': 'no-margin'}).get_text()
-                    music_dict.append({'artist':artist,
-                                        'artist_url':artist_url,
-                                        'track':track,
-                                        'time_stamp':time_stamp})
+                    music_dict.append({'artist': artist,
+                                       'artist_url': artist_url,
+                                       'track': track,
+                                       'time_stamp': time_stamp})
                 return music_dict
             else:
                 return None
@@ -564,31 +574,36 @@ class Extractor(object):
             return None
 
     def get_boadcast_info(self, web_page):
-        broadcast_info = web_page.find('div', attrs={'class': 'component component--box component--box--primary', 'id':'broadcasts'})
+        broadcast_info = web_page.find(
+            'div', attrs={'class': 'component component--box component--box--primary', 'id': 'broadcasts'})
         if broadcast_info is not None:
-            broadcast_list = broadcast_info.find('ul', attrs={'class':'grid-wrapper highlight-box-wrapper--grid'})
+            broadcast_list = broadcast_info.find(
+                'ul', attrs={'class': 'grid-wrapper highlight-box-wrapper--grid'})
             broadcasts = []
 
             for item in broadcast_list.find_all('li'):
-                broadcast = item.find('div', attrs={'class':'broadcast-event__time beta'})
+                broadcast = item.find('div', attrs={'class': 'broadcast-event__time beta'})
 
                 time_stamp = broadcast['content']
                 standard_date = broadcast['title']
-                time = broadcast.find('span', attrs={'class':'timezone--time'}).get_text()
+                time = broadcast.find('span', attrs={'class': 'timezone--time'}).get_text()
 
-                channel = item.find('div', attrs={'class':'programme__service box-link__elevated micro text--subtle'})
-                channel_name=channel.get_text()
-                broadcasts.append({'channel':channel_name,
-                                    'time_stamp': time_stamp,
-                                    'standard_date':standard_date,
-                                    'time':time})
+                channel = item.find(
+                    'div',
+                    attrs={'class': 'programme__service box-link__elevated micro text--subtle'})
+                channel_name = channel.get_text()
+                broadcasts.append({'channel': channel_name,
+                                   'time_stamp': time_stamp,
+                                   'standard_date': standard_date,
+                                   'time': time})
             return broadcasts
         else:
             return None
 
     def get_featured_in(self, web_page):
 
-        featured_in = web_page.find('div', attrs={'class': 'component component--box component--box-flushbody component--box--primary', 'id': 'collections'})
+        featured_in = web_page.find('div', attrs={
+                                    'class': 'component component--box component--box-flushbody component--box--primary', 'id': 'collections'})
         if featured_in is not None:
             featured_list = featured_in.find('ul', attrs={'class': 'list-unstyled'})
 
@@ -600,10 +615,11 @@ class Extractor(object):
                 subtitle = item.find('p').get_text()
                 link = item_info['href']
                 featured_in_dict.append({'title': title,
-                                        'subtitle':subtitle,
-                                        'link':link})
+                                         'subtitle': subtitle,
+                                         'link': link})
             return featured_in_dict
-        else: return None
+        else:
+            return None
 
     # TODO: if none then omit
     def get_episode_supportingitems(self, web_page):
@@ -619,10 +635,10 @@ class Extractor(object):
             title = content.find('h2').get_text()
 
             link = content.find('a', attrs={'class': 'superpromo__img'})
-            link = link['href']
+            link = link['href'] if link is not None else None
 
             summary = content.find('div', attrs={'class': 'superpromo__content'})
-            summary = summary.find('p').get_text()
+            summary = summary.find('p').get_text() if summary is not None else None
 
             supporting_items.append({'title': title,
                                      'link': link,
@@ -635,10 +651,11 @@ class Extractor(object):
         last_on = web_page.find('div', attrs={'class': 'broadcast-event__time beta'})
         date_time = last_on['content']
         standard_date = last_on['title']
-        time = last_on.find('span', attrs={'class':'timezone--time'})
+        time = last_on.find('span', attrs={'class': 'timezone--time'})
         time = time.get_text()
 
-        channel = web_page.find('div', attrs={'class':'programme__service box-link__elevated micro text--subtle'})
+        channel = web_page.find(
+            'div', attrs={'class': 'programme__service box-link__elevated micro text--subtle'})
         channel_name = channel.get_text()
 
         return {'channel': channel_name,
@@ -649,16 +666,20 @@ class Extractor(object):
     def get_left_to_watch(self, web_page):
 
         left_to_watch = web_page.find(
-                'div', attrs={'class': 'grid 1/3@bpw 1/4@bpe'})
+            'div', attrs={'class': 'grid 1/3@bpw 1/4@bpe'})
 
+        # TODO: something is breaking here
         if left_to_watch is not None:
-            left_to_watch_list = left_to_watch.find_all('p', attrs={'class':'episode-panel__meta'})
+
+            left_to_watch_list = left_to_watch.find_all('p', attrs={'class': 'episode-panel__meta'})
             days_left = left_to_watch_list[0].find('span')
-            removal_date = days_left['title']
-            days_left = days_left.get_text()
-            duration = left_to_watch_list[1].get_text()
-            return {'days_left': days_left, 'duration': duration, 'removal_date': removal_date}
-        else: return None
+            if days_left is not None:
+                removal_date = days_left['title'] if days_left is not None else None
+                days_left = days_left.get_text()
+                duration = left_to_watch_list[1].get_text()
+                return {'days_left': days_left, 'duration': duration, 'removal_date': removal_date}
+        else:
+            return None
 
     def extract_childrens(self, web_page):
         '''function to extract infomration from other page formats relating to cbeebies and cbbc
@@ -687,75 +708,211 @@ class Extractor(object):
 
         '''
 
-
         pass
 
     # TODO this needs rewriting asap - change to array output
 
-    def get_genre_format(self, web_page):
-        genre_format = web_page.find(
-            'div', attrs={'class': 'footer__similar b-g-p component'})
+    # def get_genre_format(self, web_page):
+    #     genre_format = web_page.find(
+    #         'div', attrs={'class': 'footer__similar b-g-p component'})
 
+    #     if genre_format is None:
+    #         genre_format = web_page.find(
+    #             'div',
+    #             attrs={
+    #                 'class':
+    #                 'islet--horizontal footer__programmes footer__service-island'
+    #             })
+
+    #     if genre_format is not None:
+    #         sim = genre_format.find_all('div')
+    #         genre_format_list = []
+
+    #         for i in sim:
+    #             genre_format_list.append([[x.get_text(), x['href']]
+    #                                       for x in i.find_all('a', href=True)])
+
+    #         genre_format_dict = {'genre': {}}
+
+    #         # TODO this should be re-written into lists of dictionaries also handle multiple sub genres better
+
+    #         for i in range(len(genre_format_list)):
+    #             for j in range(len(genre_format_list[i])):
+    #                 if i == 0:
+    #                     if j < 1:
+    #                         genre_format_dict['genre'].update({
+    #                             'main': {
+    #                                 str(j): genre_format_list[i][j][0],
+    #                                 'link': genre_format_list[i][j][1]
+    #                             }
+    #                         })
+    #                     elif j == 1:
+    #                         genre_format_dict['genre'].update({
+    #                             'sub_genre': {
+    #                                 str(j): genre_format_list[i][j][0],
+    #                                 'link': genre_format_list[i][j][1]
+    #                             }
+    #                         })
+    #                     else:
+    #                         genre_format_dict['genre']['sub_genre'].update({
+    #                             str(j):
+    #                             genre_format_list[i][j][0],
+    #                             'link':
+    #                             genre_format_list[i][j][1]
+    #                         })
+    #                 else:
+    #                     if j < 1:
+    #                         genre_format_dict.update({
+    #                             'format': {
+    #                                 str(j): genre_format_list[i][j][0],
+    #                                 'link': genre_format_list[i][j][1]
+    #                             }
+    #                         })
+    #                     else:
+    #                         genre_format_dict['format'].update({
+    #                             'sub_format': {
+    #                                 str(j): genre_format_list[i][j][0],
+    #                                 'link': genre_format_list[i][j][1]
+    #                             }
+    #                         })
+    #         return genre_format_dict
+
+    def episode_microsite_extractor(self, url, upcoming=False):
+        '''function for extracting useful information form an episode microsite
+
+        Arguments:
+            url {url} -- should be a url to a bbc programme episode ie https://www.bbc.co.uk/programmes/m0002vlb
+
+        Keyword Arguments:
+            upcoming {bool} -- indicate whether the episode is upcoming or not to omit unuseful information (default: {False})
+
+        Returns:
+            dictionary of all useful information from episode webpage --  mainly for credits, series, and music information
+         },
+        '''
+
+        episode_web_page = self.Browser.get_page(url)
+
+        episode_dict = {}
+
+        main_episode_info = episode_web_page.find(
+            'div', attrs={'class': 'grid-wrapper grid-wrapper--flush map map--episode map--count-2'})
+
+        episode_longest_synopsis = main_episode_info.find(
+            'div', attrs={'class': 'text--prose longest-synopsis'})
+        if episode_longest_synopsis is not None:
+            episode_longest_synopsis = episode_longest_synopsis.find_all('p')
+            episode_longest_synopsis = ' '.join([x.get_text() for x in episode_longest_synopsis])
+            episode_dict.update({'long_synopsis': episode_longest_synopsis})
+
+        series_id = main_episode_info.find('div', attrs={'class': 'offset'})
+
+        if series_id is not None:
+            series_id_name = series_id.find_all('a')
+            series_id = series_id_name[-1]['href']
+            episode_dict.update({'series_id': series_id.split('/')[-1]})
+            series_name = series_id_name[-1].get_text()
+            episode_dict.update({'series_name': series_name})
+
+        if upcoming is False:
+            left_to_watch_dict = self.get_left_to_watch(episode_web_page)
+            # this needs refactoring into a METHOD
+            if left_to_watch_dict is not None:
+                episode_dict.update(left_to_watch_dict)
+
+            episode_broadcasts = self.get_boadcast_info(episode_web_page)
+            episode_dict.update({'previous_broadcasts': episode_broadcasts})
+
+            # Last on next on section
+            last_on_next_on = episode_web_page.find(
+                'div', attrs={'class': 'grid 1/3@bpw2 1/3@bpe map__column map__column--2 map__column--last'})
+
+            last_on = last_on_next_on.find(
+                'div', attrs={'data-map-column': 'tx', 'class': 'br-box-secondary'})
+
+            if last_on is not None:
+                last_broadcast = self.get_last_on(last_on)
+
+                episode_dict.update({'broadcast': {'last_on': last_broadcast}})
+
+        # role credits and music credits also contains featured in - for boxsets ie soaps
+        credits_box = episode_web_page.find(
+            'div', attrs={'class': 'grid grid--bounded 13/24@bpw2 13/24@bpe'})
+
+        credits_dict = self.get_episode_credits(credits_box)
+        episode_dict.update({"credits": credits_dict})
+
+        music_played = self.get_episode_music(credits_box)
+        episode_dict.update({'music': music_played})
+
+        # promo and supporting material
+        supporting_items = episode_web_page.find(
+            'div', attrs={'class': 'grid grid--bounded 11/24@bpw2 11/24@bpe'})
+        if supporting_items is not None:
+            supporting_items_dict = self.get_episode_supportingitems(supporting_items)
+            episode_dict.update({'supporting_content': supporting_items_dict})
+
+        genres, formats = self.get_genre(episode_web_page)
+        episode_dict.update({'genre': genres, 'format': formats})
+
+        featured_in_dict = self.get_featured_in(episode_web_page)
+        episode_dict.update({'collection': featured_in_dict})
+
+        return episode_dict
+
+    def get_genre(self, web_page):
+        '''takes web page and returns the genre and if applicable format of the episode/programme
+
+        Arguments:
+            web_page {soup html} -- html content relating to the program/episode microsite
+
+        potential genre locations
+        'grid grid--flush 1/2@bpw 1/4@bpw2 1/4@bpe' - episode microsite
+        grid__item 1/3@gel4 1/4@gel3b 1/2@gel3 - program microsite
+
+        '''
+
+        # this will extract genre/format from programme microsite
+        genre_format = web_page.find(
+            'div', attrs={'class': 'grid__item 1/3@gel4 1/4@gel3b 1/2@gel3'})
+
+        # this will extract genre format from the episode microsite
         if genre_format is None:
             genre_format = web_page.find(
-                'div',
-                attrs={
-                    'class':
-                    'islet--horizontal footer__programmes footer__service-island'
-                })
+                'div', attrs={'class': 'grid grid--flush 1/2@bpw 1/4@bpw2 1/4@bpe'})
 
-        if genre_format is not None:
-            sim = genre_format.find_all('div')
-            genre_format_list = []
+        # extractor if episode microsite
 
-            for i in sim:
-                genre_format_list.append([[x.get_text(), x['href']]
-                                          for x in i.find_all('a', href=True)])
+        container = genre_format.find('div', attrs={'class': 'footer__similar b-g-p component'})
+        if container is None:
+            container = genre_format.find(
+                'div', attrs={'class': 'islet--horizontal footer__programmes footer__service-island'})
 
-            genre_format_dict = {'genre': {}}
+        if container is not None:
+            items = container.find_all('div')
 
-            # TODO this should be re-written into lists of dictionaries also handle multiple sub genres better
+            genres = []
+            formats = []
 
-            for i in range(len(genre_format_list)):
-                for j in range(len(genre_format_list[i])):
-                    if i == 0:
-                        if j < 1:
-                            genre_format_dict['genre'].update({
-                                'main': {
-                                    str(j): genre_format_list[i][j][0],
-                                    'link': genre_format_list[i][j][1]
-                                }
-                            })
-                        elif j == 1:
-                            genre_format_dict['genre'].update({
-                                'sub_genre': {
-                                    str(j): genre_format_list[i][j][0],
-                                    'link': genre_format_list[i][j][1]
-                                }
-                            })
-                        else:
-                            genre_format_dict['genre']['sub_genre'].update({
-                                str(j):
-                                genre_format_list[i][j][0],
-                                'link':
-                                genre_format_list[i][j][1]
-                            })
-                    else:
-                        if j < 1:
-                            genre_format_dict.update({
-                                'format': {
-                                    str(j): genre_format_list[i][j][0],
-                                    'link': genre_format_list[i][j][1]
-                                }
-                            })
-                        else:
-                            genre_format_dict['format'].update({
-                                'sub_format': {
-                                    str(j): genre_format_list[i][j][0],
-                                    'link': genre_format_list[i][j][1]
-                                }
-                            })
-            return genre_format_dict
+            for item in items:
 
+                for sub_item in item.find_all('li'):
 
-# testing
+                    link = sub_item.find_all('a')
+                    for a in link:
+                        if 'genres' in a['href']:
+                            if len(genres) is 0:
+                                genres.append({'genre': a.get_text(), 'link': a['href']})
+                            else:
+                                if a['href'] != genres[0]['link']:
+                                    genres.append({'sub_genre': a.get_text(), 'link': a['href']})
+                        elif 'formats' in a['href']:
+                            if len(formats) is 0:
+                                formats.append({'format': a.get_text(), 'link': a['href']})
+                            else:
+                                if a['href'] != formats[0]['link']:
+                                    formats.append({'sub_format': a.get_text(), 'link': a['href']})
+
+            return genres, formats
+        else:
+            return None, None

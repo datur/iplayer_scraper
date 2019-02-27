@@ -3,7 +3,7 @@
     [ ] scrape episode/all to gather gather better series information
     [ ] use imdbpy to get progam id and other information
     [ ] rotten tomatoes coming out this week
-    [ ] argparse
+    [/] argparse
 
 ## todo from 20/02
 
@@ -16,13 +16,14 @@
     [ ] get credits people imdb id
     [ ] complete
     [/] tvdb search function
-    [ ] scrape bbc by series
-    [ ] fix ccbc entries
+    [/] scrape bbc by series
+    [/] fix ccbc entries
     [ ] brand -> series -> episode
     [ ] programme website get genre format
-    [ ] go through each episode page
+    [/] go through each episode page
+        still need to go through each episode page for upcoming episodes
     [ ] film profile - check out the tags for episodes as not currently working - film nght too
-    [ ] for past episodes get broadcast info last on ttag
+    [X] for past episodes get broadcast info last on ttag
     [ ] change time left to available untill date
     [ ] air date air time
     [ ] iplayer alphabet suffix -> programmes for that suffix -> programme website extraction(synopsis, genre etc) -> episodes -> all -> season by season episode extraction -> episode page -> credits, episode synopsis, recommendations
