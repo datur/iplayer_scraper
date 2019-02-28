@@ -407,7 +407,6 @@ class Extractor(object):
 
         return episodes_list
 
-    
     def upcoming_episodes(self, url):
         '''next_on_suffix = 'broadcasts/upcoming/'''
         web_page = self.Browser.get_page(self._BASE_URL + url)
@@ -709,8 +708,6 @@ class Extractor(object):
         '''
 
         pass
-
-
 
     def episode_microsite_extractor(self, url, upcoming=False):
         '''function for extracting useful information form an episode microsite
