@@ -1,9 +1,10 @@
 # Todo
 
-    [ ] scrape episode/all to gather gather better series information
     [ ] use imdbpy to get progam id and other information
     [ ] rotten tomatoes coming out this week
     [/] argparse
+    [ ] integrate new extractor class into main program
+    [ ] evaluate film pages
 
 ## todo from 20/02
 
@@ -16,32 +17,9 @@
     [ ] get credits people imdb id
     [ ] complete
     [/] tvdb search function
-    [/] scrape bbc by series
-    [/] fix ccbc entries
-    [ ] brand -> series -> episode
-    [ ] programme website get genre format
-    [/] go through each episode page
-        still need to go through each episode page for upcoming episodes
     [ ] film profile - check out the tags for episodes as not currently working - film nght too
-    [X] for past episodes get broadcast info last on ttag
-    [ ] change time left to available untill date
-    [ ] air date air time
-    [ ] iplayer alphabet suffix -> programmes for that suffix -> programme website extraction(synopsis, genre etc) -> episodes -> all -> season by season episode extraction -> episode page -> credits, episode synopsis, recommendations
 
     major restructure is required as current structure does not make sense
-
-    full extract structure as follows:
-        = loop a through z -> This works currently
-            = loop through each program on current alphabet entry -> this works currently
-            = get latest episode url / get program general info ie name, and short synopsis -> currently works
-            = visit latest episode site to access program website -> currently works
-                = if program website unavailable then get info from curr page -> ongoing
-            = from program website get - long synopsis, airing information, recommendations, genre, format
-            = visit episode section if available
-            = go through and get all available episodes and follow link for longer synopsis and credits and genre format
-            - go through upcoming episodes if available
-            - go through all tab for more indepth series information
-            - get music played on episode
 
 
 ## Testing TODO
@@ -58,3 +36,5 @@ Shows to test
 
     film:           https://www.bbc.co.uk/programmes/b05nbsc4
                     https://www.bbc.co.uk/iplayer/episode/p06zb13p/it-follows
+
+
