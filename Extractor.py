@@ -1,7 +1,8 @@
 from bs4 import BeautifulSoup
-from browser_class import Browser
+from browser_class import Browser, JSBrowser
 from dictionary_builder import DictionaryBuilder
 from datetime import datetime
+import time
 
 
 class Extractor(object):
@@ -14,6 +15,7 @@ class Extractor(object):
         self.dictionary = DictionaryBuilder()
         self._BASE_URL = 'https://www.bbc.co.uk'
         self._SCRAPING_SUFFIX = '/iplayer/a-z/'
+        self.JSBrowser = JSBrowser()
 
     def extract(self):
         '''main extractor method. This will return a dictionary'''
@@ -125,6 +127,11 @@ class Extractor(object):
         web_page = self.Browser.get_page(self._BASE_URL + program_website_url)
 
         # todo: check for channel then execute kids show extractor
+        channel_check = web_page.find('div', attrs={'class': 'menu__bar'})
+        channel = channel_check.find('a', attrs={'class':'menu__product'})
+        
+        if channel['href'] == '/cbbc' or channel['href'] == '/cbeebies':
+            self.extract_childrens(web_page)
 
         genres, formats = self.get_genre(web_page)
         self.dictionary.add('genre', genres)
@@ -704,10 +711,142 @@ class Extractor(object):
         if on program website div class : menu__product ['href] is /cbbc
         then use this function
 
-
         '''
 
-        pass
+        programme_dict = {}
+
+        programme_details = web_page.find('div', attrs={'class': 'programme-info__details'})
+
+        if programme_details == None:
+            print('web_page: ', web_page)
+
+        programme_synopsis = programme_details.find(
+            'p', attrs={'class': 'programme-info__description'})
+
+
+        programme_title = programme_details.find('h2', attrs={'class': 'programme-info__title'})
+
+        program_availability = web_page.find('div', attrs={'class':'programme-info__availability'})
+
+        tv_availability = program_availability.find('div', attrs={'class':'programme-schedule-info'})
+
+        if tv_availability is not None:
+            broadcast_info = tv_availability.find('div', attrs={'class':'programme-schedule-info__info'})
+            broadcast_day = broadcast_info.find('p', attrs={'class':'programme-schedule-info__day'})
+            broadcast_time = broadcast_info.find('p', attrs={'class': 'programme-schedule-info__time'})
+            broadcast_channel = broadcast_info.find('p', attrs={'class':'programme-schedule-info__product-name'})
+            programme_dict.update({'broadcast':{'broadcast_day': broadcast_day.get_text(),
+                                                'broadcast_time': broadcast_time.get_text(),
+                                                'broadcast_channel': broadcast_channel.get_text()}})
+        else:
+            broadcast_info = "online only"
+
+        programme_dict.update({'programme_title': programme_title.get_text(),
+                               'programme_synopsis': programme_synopsis.get_text()})
+
+        supporting_content = web_page.find(
+            'div',
+            attrs={
+                'class':
+                'content-collection-sections__item content-collection-section content-collection-section--all pocket pocket--closed pocket--has-controls'})
+
+        if supporting_content is None:
+            supporting_content = web_page.find('div', attrs={'class':'content-collection-sections__item content-collection-section content-collection-section--all pocket pocket--closed'})
+
+        supporting_list = supporting_content.find('ul', attrs={'class': 'content-list'})
+
+        supporting_items = []
+
+        for content in supporting_list.find_all('li', attrs={'class': 'content-list__item'}):
+            link_details = content.find('a')
+            if link_details is None:
+                print(content)
+            link = link_details['href']
+
+            content_type = link_details['data-site-section']
+            description = content.find('p', attrs={'class': 'content-card__title'})
+            supporting_items.append({'link': link,
+                                     'content_type': content_type,
+                                     'description': description['aria-label']})
+
+        programme_dict.update({'supporting_content': supporting_items})
+
+        episode_content = web_page.find(
+            'div',
+            attrs={
+                'class':
+                'content-collection-sections__item content-collection-section content-collection-section--episodes pocket pocket--closed',
+                'id': 'episodes-container'})
+
+        episode_list = episode_content.find('ul', attrs={'class': 'content-list'}).find_all('li')
+
+        episode_items = []
+
+        for content in episode_list:
+
+            temp_dict = {}
+
+            link_details = content.find('a')
+            link = link_details['href']
+
+            _id = link.split('/')[-1]
+
+            content_type = link_details['data-site-section']
+
+            episode_title = content.find('p', attrs={'class': 'content-card__title'})['aria-label']
+
+            temp_dict.update({'id': _id,
+                              'link': link,
+                              'content_type': content_type,
+                              'episode_title': episode_title})
+            time.sleep(2)
+            episode_page = self.JSBrowser.navigate(link)
+
+            episode_html = BeautifulSoup(episode_page, 'lxml')
+
+            title_location = episode_html.find(
+                'div', attrs={'class': 'play-cta__text js-play-cta-text play-cta__text--with-subtitle'})
+            title = title_location.find(
+                'span', attrs={'class': 'typo typo--buzzard typo--bold play-cta__text__title'})
+            title = title.get_text()
+
+            series_titles = title_location.find(
+                'span', attrs={'class': 'typo typo--skylark play-cta__text__subtitle'})
+            series_titles = series_titles.get_text()
+
+            synopsis = episode_html.find('p', attrs={'class': 'synopsis__paragraph'})
+            synopsis = synopsis.get_text()
+
+            temp_dict.update({'title': title,
+                              'series': series_titles,
+                              'synopsis': synopsis})
+
+            metadata = episode_html.find(
+                'ul', attrs={'class': 'inline-list episode-metadata typo--canary'})
+
+            for item in metadata.find_all('li', attrs={'class': 'inline-list__item'}):
+                item_type = item.find('span', attrs={'class': 'tvip-hide'})
+
+                if item_type is not None and item_type.get_text() == 'Duration':
+                    duration = item.find('span', attrs={'class': 'episode-metadata__text'})
+                    duration = duration.get_text()
+                    temp_dict.update({'duration': duration})
+
+                if item_type is not None and item_type.get_text() == 'First shown':
+                    first_shown = item.find('span', attrs={'class': 'episode-metadata__text'})
+                    first_shown = first_shown.get_text()
+                    temp_dict.update({'first_shown': first_shown})
+
+                if 'Available' in item.span:
+                    available_until = item.find('span', attrs={'class': 'episode-metadata__text'})
+                    available_until = available_until.get_text()
+                    temp_dict.update({'available_until': available_until})
+
+            episode_items.append(temp_dict)
+
+        programme_dict.update({'episodes': episode_items})
+
+        return programme_dict
 
     def episode_microsite_extractor(self, url, upcoming=False):
         '''function for extracting useful information form an episode microsite
