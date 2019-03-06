@@ -15,10 +15,12 @@ class Extractor(object):
         self.dictionary = DictionaryBuilder()
         self._BASE_URL = 'https://www.bbc.co.uk'
         self._SCRAPING_SUFFIX = '/iplayer/a-z/'
-        self.JSBrowser = JSBrowser()
+        
 
     def extract(self):
         '''main extractor method. This will return a dictionary'''
+
+        self.JSBrowser = JSBrowser()
 
         filename = str('bbc_iplayer_scraped_' +
                        datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '.json')
@@ -43,7 +45,7 @@ class Extractor(object):
 
             # loop for each program on the current alphabet page
             for program_box in program_selection:
-
+                
                 latest_episode_url = self.iplayer_atoz_page_extractor(program_box)
 
                 program_website_url = self.latest_episode_extractor(self._BASE_URL +
@@ -53,7 +55,7 @@ class Extractor(object):
                 if program_website_url is not None:
                     self.program_microsite_extractor(program_website_url)
 
-                self.dictionary.print()
+                self.dictionary.to_file(filename)
                 self.dictionary.clear()
 
     def iplayer_atoz_page_extractor(self, program_selection):
@@ -69,6 +71,7 @@ class Extractor(object):
 
         if title is not None:
             title = title.get_text()
+            print(title)
         else:
             title = program_selection.find(
                 'div', attrs={'class': 'content-item__title'})
@@ -128,25 +131,28 @@ class Extractor(object):
 
         # todo: check for channel then execute kids show extractor
         channel_check = web_page.find('div', attrs={'class': 'menu__bar'})
-        channel = channel_check.find('a', attrs={'class':'menu__product'})
         
-        if channel['href'] == '/cbbc' or channel['href'] == '/cbeebies':
-            self.extract_childrens(web_page)
+        if channel_check is not None:
+            channel = channel_check.find('a', attrs={'class':'menu__product'})
+        
+            if channel['href'] == '/cbbc' or channel['href'] == '/cbeebies':
+                print(program_website_url)
+                self.extract_childrens(web_page)
+        else:
+            genres, formats = self.get_genre(web_page)
+            self.dictionary.add('genre', genres)
+            self.dictionary.add('format', formats)
 
-        genres, formats = self.get_genre(web_page)
-        self.dictionary.add('genre', genres)
-        self.dictionary.add('format', formats)
+            try:
+                self.program_synopsis(web_page)
+            except Exception as e:
+                print('Error ', e, ' at:', self._BASE_URL + program_website_url)
 
-        try:
-            self.program_synopsis(web_page)
-        except Exception as e:
-            print('Error ', e, ' at:', self._BASE_URL + program_website_url)
+            self.supporting_content(web_page)
 
-        self.supporting_content(web_page)
+            self.full_recommend(self._BASE_URL + program_website_url + '/recommendations')
 
-        self.full_recommend(self._BASE_URL + program_website_url + '/recommendations')
-
-        self.episodes(web_page)
+            self.episodes(web_page)
 
     def program_synopsis(self, web_page_element):
         '''will try to extract a longer program synopsis if available
@@ -379,7 +385,7 @@ class Extractor(object):
             last_on = last_on_next_on.find(
                 'div', attrs={'data-map-column': 'tx', 'class': 'br-box-secondary'})
 
-            last_broadcast = self.get_last_on(last_on)
+            last_broadcast = self.get_last_on(last_on) if last_on is not None else None
             episode_dict['episode'].update({'broadcast': {'last_on': last_broadcast}})
 
             # role credits and music credits also contains featured in - for boxsets ie soaps
@@ -545,7 +551,6 @@ class Extractor(object):
             return None
 
     def get_episode_music(self, web_page):
-
         music_location = web_page.find(
             'div',
             attrs={
@@ -561,8 +566,10 @@ class Extractor(object):
 
                 for music in music_list.find_all('li'):
                     info = music.find('div', attrs={'class': 'segment__track'})
+                    
                     time_stamp = info.find(
-                        'div', attrs={'class': 'text--subtle pull--right-spaced'})['aria-label']
+                        'div', attrs={'class': 'text--subtle pull--right-spaced'})
+                    time_stamp = time_stamp['aria-label'] if time_stamp is not None else None
                     artist = info.find('h3', attrs={'class': 'gamma no-margin'})
 
                     artist_url = artist.a['href'] if artist.a is not None else None
@@ -743,40 +750,43 @@ class Extractor(object):
 
         programme_dict.update({'programme_title': programme_title.get_text(),
                                'programme_synopsis': programme_synopsis.get_text()})
+        
+        supporting_content_location = web_page.find('ul', attrs={'class':'content-collection-sections__list'})
 
-        supporting_content = web_page.find(
+        supporting_content = supporting_content_location.find(
             'div',
             attrs={
-                'class':
-                'content-collection-sections__item content-collection-section content-collection-section--all pocket pocket--closed pocket--has-controls'})
+                'data-stats-children-index': '',
+                'id':'all-container'})
 
-        if supporting_content is None:
-            supporting_content = web_page.find('div', attrs={'class':'content-collection-sections__item content-collection-section content-collection-section--all pocket pocket--closed'})
+        
+        
+        if supporting_content is not None:
+            supporting_list = supporting_content.find('ul', attrs={'class': 'content-list'})
 
-        supporting_list = supporting_content.find('ul', attrs={'class': 'content-list'})
+            supporting_items = []
 
-        supporting_items = []
+            for content in supporting_list.find_all('li', attrs={'class': 'content-list__item'}):
+                link_details = content.find('a')
+                if link_details is None:
+                    print(content)
+                link = link_details['href']
 
-        for content in supporting_list.find_all('li', attrs={'class': 'content-list__item'}):
-            link_details = content.find('a')
-            if link_details is None:
-                print(content)
-            link = link_details['href']
+                content_type = link_details['data-site-section']
+                description = content.find('p', attrs={'class': 'content-card__title'})
+                supporting_items.append({'link': link,
+                                        'content_type': content_type,
+                                        'description': description['aria-label']})
 
-            content_type = link_details['data-site-section']
-            description = content.find('p', attrs={'class': 'content-card__title'})
-            supporting_items.append({'link': link,
-                                     'content_type': content_type,
-                                     'description': description['aria-label']})
+            programme_dict.update({'supporting_content': supporting_items})
 
-        programme_dict.update({'supporting_content': supporting_items})
+        
 
-        episode_content = web_page.find(
+        episode_content = supporting_content_location.find(
             'div',
             attrs={
-                'class':
-                'content-collection-sections__item content-collection-section content-collection-section--episodes pocket pocket--closed',
-                'id': 'episodes-container'})
+                'id': 'episodes-container',
+                'data-stats-children-index': 'episodes'})
 
         episode_list = episode_content.find('ul', attrs={'class': 'content-list'}).find_all('li')
 
@@ -790,6 +800,7 @@ class Extractor(object):
             link = link_details['href']
 
             _id = link.split('/')[-1]
+            print(_id)
 
             content_type = link_details['data-site-section']
 
@@ -799,7 +810,8 @@ class Extractor(object):
                               'link': link,
                               'content_type': content_type,
                               'episode_title': episode_title})
-            time.sleep(2)
+            
+
             episode_page = self.JSBrowser.navigate(link)
 
             episode_html = BeautifulSoup(episode_page, 'lxml')
