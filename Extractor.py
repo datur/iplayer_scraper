@@ -15,12 +15,13 @@ class Extractor(object):
         self.dictionary = DictionaryBuilder()
         self._BASE_URL = 'https://www.bbc.co.uk'
         self._SCRAPING_SUFFIX = '/iplayer/a-z/'
+        self.JSBrowser = JSBrowser()
         
 
     def extract(self):
         '''main extractor method. This will return a dictionary'''
 
-        self.JSBrowser = JSBrowser()
+        
 
         filename = str('bbc_iplayer_scraped_' +
                        datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '.json')
@@ -341,7 +342,7 @@ class Extractor(object):
             episode_dict['episode'].update({'episode_synopsis': episode_synopsis})
 
             episode_time_left = item.find('div', attrs={'class': 'cta cta__overlay'})
-            episode_time_left = episode_time_left.a['title']
+            episode_time_left = episode_time_left.a['title'] if episode_time_left is not None else None
             episode_dict['episode'].update({'episode_time_left': episode_time_left})
 
             # TODO this should be refactored
@@ -788,75 +789,78 @@ class Extractor(object):
                 'id': 'episodes-container',
                 'data-stats-children-index': 'episodes'})
 
-        episode_list = episode_content.find('ul', attrs={'class': 'content-list'}).find_all('li')
+        if episode_content is not None:
 
-        episode_items = []
+            episode_list = episode_content.find('ul', attrs={'class': 'content-list'}).find_all('li')
 
-        for content in episode_list:
+            episode_items = []
 
-            temp_dict = {}
+            for content in episode_list:
 
-            link_details = content.find('a')
-            link = link_details['href']
+                temp_dict = {}
 
-            _id = link.split('/')[-1]
-            print(_id)
+                link_details = content.find('a')
+                link = link_details['href']
 
-            content_type = link_details['data-site-section']
+                _id = link.split('/')[-1]
+                print(_id)
 
-            episode_title = content.find('p', attrs={'class': 'content-card__title'})['aria-label']
+                content_type = link_details['data-site-section']
 
-            temp_dict.update({'id': _id,
-                              'link': link,
-                              'content_type': content_type,
-                              'episode_title': episode_title})
-            
+                episode_title = content.find('p', attrs={'class': 'content-card__title'})['aria-label']
 
-            episode_page = self.JSBrowser.navigate(link)
+                temp_dict.update({'id': _id,
+                                'link': link,
+                                'content_type': content_type,
+                                'episode_title': episode_title})
+                
 
-            episode_html = BeautifulSoup(episode_page, 'lxml')
+                episode_page = self.JSBrowser.get_page(link)
 
-            title_location = episode_html.find(
-                'div', attrs={'class': 'play-cta__text js-play-cta-text play-cta__text--with-subtitle'})
-            title = title_location.find(
-                'span', attrs={'class': 'typo typo--buzzard typo--bold play-cta__text__title'})
-            title = title.get_text()
+                episode_html = BeautifulSoup(episode_page, 'lxml')
 
-            series_titles = title_location.find(
-                'span', attrs={'class': 'typo typo--skylark play-cta__text__subtitle'})
-            series_titles = series_titles.get_text()
+                title_location = episode_html.find(
+                    'div', attrs={'class': 'play-cta__text js-play-cta-text play-cta__text--with-subtitle'})
+                title = title_location.find(
+                    'span', attrs={'class': 'typo typo--buzzard typo--bold play-cta__text__title'})
+                title = title.get_text()
 
-            synopsis = episode_html.find('p', attrs={'class': 'synopsis__paragraph'})
-            synopsis = synopsis.get_text()
+                series_titles = title_location.find(
+                    'span', attrs={'class': 'typo typo--skylark play-cta__text__subtitle'})
+                series_titles = series_titles.get_text()
 
-            temp_dict.update({'title': title,
-                              'series': series_titles,
-                              'synopsis': synopsis})
+                synopsis = episode_html.find('p', attrs={'class': 'synopsis__paragraph'})
+                synopsis = synopsis.get_text()
 
-            metadata = episode_html.find(
-                'ul', attrs={'class': 'inline-list episode-metadata typo--canary'})
+                temp_dict.update({'title': title,
+                                'series': series_titles,
+                                'synopsis': synopsis})
 
-            for item in metadata.find_all('li', attrs={'class': 'inline-list__item'}):
-                item_type = item.find('span', attrs={'class': 'tvip-hide'})
+                metadata = episode_html.find(
+                    'ul', attrs={'class': 'inline-list episode-metadata typo--canary'})
 
-                if item_type is not None and item_type.get_text() == 'Duration':
-                    duration = item.find('span', attrs={'class': 'episode-metadata__text'})
-                    duration = duration.get_text()
-                    temp_dict.update({'duration': duration})
+                for item in metadata.find_all('li', attrs={'class': 'inline-list__item'}):
+                    item_type = item.find('span', attrs={'class': 'tvip-hide'})
 
-                if item_type is not None and item_type.get_text() == 'First shown':
-                    first_shown = item.find('span', attrs={'class': 'episode-metadata__text'})
-                    first_shown = first_shown.get_text()
-                    temp_dict.update({'first_shown': first_shown})
+                    if item_type is not None and item_type.get_text() == 'Duration':
+                        duration = item.find('span', attrs={'class': 'episode-metadata__text'})
+                        duration = duration.get_text()
+                        temp_dict.update({'duration': duration})
 
-                if 'Available' in item.span:
-                    available_until = item.find('span', attrs={'class': 'episode-metadata__text'})
-                    available_until = available_until.get_text()
-                    temp_dict.update({'available_until': available_until})
+                    if item_type is not None and item_type.get_text() == 'First shown':
+                        first_shown = item.find('span', attrs={'class': 'episode-metadata__text'})
+                        first_shown = first_shown.get_text()
+                        temp_dict.update({'first_shown': first_shown})
 
-            episode_items.append(temp_dict)
+                    if item.span is not None:
+                        if 'Available' in item.span:
+                            available_until = item.find('span', attrs={'class': 'episode-metadata__text'})
+                            available_until = available_until.get_text()
+                            temp_dict.update({'available_until': available_until})
 
-        programme_dict.update({'episodes': episode_items})
+                episode_items.append(temp_dict)
+
+            programme_dict.update({'episodes': episode_items})
 
         return programme_dict
 
@@ -880,53 +884,53 @@ class Extractor(object):
 
         main_episode_info = episode_web_page.find(
             'div', attrs={'class': 'grid-wrapper grid-wrapper--flush map map--episode map--count-2'})
+        if main_episode_info is not None:
+            episode_longest_synopsis = main_episode_info.find(
+                'div', attrs={'class': 'text--prose longest-synopsis'})
+            if episode_longest_synopsis is not None:
+                episode_longest_synopsis = episode_longest_synopsis.find_all('p')
+                episode_longest_synopsis = ' '.join([x.get_text() for x in episode_longest_synopsis])
+                episode_dict.update({'long_synopsis': episode_longest_synopsis})
 
-        episode_longest_synopsis = main_episode_info.find(
-            'div', attrs={'class': 'text--prose longest-synopsis'})
-        if episode_longest_synopsis is not None:
-            episode_longest_synopsis = episode_longest_synopsis.find_all('p')
-            episode_longest_synopsis = ' '.join([x.get_text() for x in episode_longest_synopsis])
-            episode_dict.update({'long_synopsis': episode_longest_synopsis})
+            series_id = main_episode_info.find('div', attrs={'class': 'offset'})
 
-        series_id = main_episode_info.find('div', attrs={'class': 'offset'})
+            if series_id is not None:
+                series_id_name = series_id.find_all('a')
+                series_id = series_id_name[-1]['href']
+                episode_dict.update({'series_id': series_id.split('/')[-1] if series_id.split('/')[-1] is not "ad" else series_id.split('/')[-2] })
+                series_name = series_id_name[-1].get_text()
+                episode_dict.update({'series_name': series_name})
 
-        if series_id is not None:
-            series_id_name = series_id.find_all('a')
-            series_id = series_id_name[-1]['href']
-            episode_dict.update({'series_id': series_id.split('/')[-1]})
-            series_name = series_id_name[-1].get_text()
-            episode_dict.update({'series_name': series_name})
+            if upcoming is False:
+                left_to_watch_dict = self.get_left_to_watch(episode_web_page)
+                # this needs refactoring into a METHOD
+                if left_to_watch_dict is not None:
+                    episode_dict.update(left_to_watch_dict)
 
-        if upcoming is False:
-            left_to_watch_dict = self.get_left_to_watch(episode_web_page)
-            # this needs refactoring into a METHOD
-            if left_to_watch_dict is not None:
-                episode_dict.update(left_to_watch_dict)
+                episode_broadcasts = self.get_boadcast_info(episode_web_page)
+                episode_dict.update({'previous_broadcasts': episode_broadcasts})
 
-            episode_broadcasts = self.get_boadcast_info(episode_web_page)
-            episode_dict.update({'previous_broadcasts': episode_broadcasts})
+                # Last on next on section
+                last_on_next_on = episode_web_page.find(
+                    'div', attrs={'class': 'grid 1/3@bpw2 1/3@bpe map__column map__column--2 map__column--last'})
 
-            # Last on next on section
-            last_on_next_on = episode_web_page.find(
-                'div', attrs={'class': 'grid 1/3@bpw2 1/3@bpe map__column map__column--2 map__column--last'})
+                last_on = last_on_next_on.find(
+                    'div', attrs={'data-map-column': 'tx', 'class': 'br-box-secondary'})
 
-            last_on = last_on_next_on.find(
-                'div', attrs={'data-map-column': 'tx', 'class': 'br-box-secondary'})
+                if last_on is not None:
+                    last_broadcast = self.get_last_on(last_on)
 
-            if last_on is not None:
-                last_broadcast = self.get_last_on(last_on)
-
-                episode_dict.update({'broadcast': {'last_on': last_broadcast}})
+                    episode_dict.update({'broadcast': {'last_on': last_broadcast}})
 
         # role credits and music credits also contains featured in - for boxsets ie soaps
         credits_box = episode_web_page.find(
             'div', attrs={'class': 'grid grid--bounded 13/24@bpw2 13/24@bpe'})
+        if credits_box is not None:
+            credits_dict = self.get_episode_credits(credits_box)
+            episode_dict.update({"credits": credits_dict})
 
-        credits_dict = self.get_episode_credits(credits_box)
-        episode_dict.update({"credits": credits_dict})
-
-        music_played = self.get_episode_music(credits_box)
-        episode_dict.update({'music': music_played})
+            music_played = self.get_episode_music(credits_box)
+            episode_dict.update({'music': music_played})
 
         # promo and supporting material
         supporting_items = episode_web_page.find(
@@ -965,37 +969,39 @@ class Extractor(object):
                 'div', attrs={'class': 'grid grid--flush 1/2@bpw 1/4@bpw2 1/4@bpe'})
 
         # extractor if episode microsite
+        if genre_format is not None:
 
-        container = genre_format.find('div', attrs={'class': 'footer__similar b-g-p component'})
-        if container is None:
-            container = genre_format.find(
-                'div', attrs={'class': 'islet--horizontal footer__programmes footer__service-island'})
+            container = genre_format.find('div', attrs={'class': 'footer__similar b-g-p component'})
+            if container is None:
+                container = genre_format.find(
+                    'div', attrs={'class': 'islet--horizontal footer__programmes footer__service-island'})
 
-        if container is not None:
-            items = container.find_all('div')
+            if container is not None:
+                items = container.find_all('div')
 
-            genres = []
-            formats = []
+                genres = []
+                formats = []
 
-            for item in items:
+                for item in items:
 
-                for sub_item in item.find_all('li'):
+                    for sub_item in item.find_all('li'):
 
-                    link = sub_item.find_all('a')
-                    for a in link:
-                        if 'genres' in a['href']:
-                            if len(genres) is 0:
-                                genres.append({'genre': a.get_text(), 'link': a['href']})
-                            else:
-                                if a['href'] != genres[0]['link']:
-                                    genres.append({'sub_genre': a.get_text(), 'link': a['href']})
-                        elif 'formats' in a['href']:
-                            if len(formats) is 0:
-                                formats.append({'format': a.get_text(), 'link': a['href']})
-                            else:
-                                if a['href'] != formats[0]['link']:
-                                    formats.append({'sub_format': a.get_text(), 'link': a['href']})
+                        link = sub_item.find_all('a')
+                        for a in link:
+                            if 'genres' in a['href']:
+                                if len(genres) is 0:
+                                    genres.append({'genre': a.get_text(), 'link': a['href']})
+                                else:
+                                    if a['href'] != genres[0]['link']:
+                                        genres.append({'sub_genre': a.get_text(), 'link': a['href']})
+                            elif 'formats' in a['href']:
+                                if len(formats) is 0:
+                                    formats.append({'format': a.get_text(), 'link': a['href']})
+                                else:
+                                    if a['href'] != formats[0]['link']:
+                                        formats.append({'sub_format': a.get_text(), 'link': a['href']})
 
-            return genres, formats
-        else:
-            return None, None
+                return genres, formats
+            else:
+                return None, None
+        else: return None, None
