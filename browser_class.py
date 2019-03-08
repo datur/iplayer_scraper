@@ -1,5 +1,6 @@
 import mechanicalsoup
 from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
 import validators
 
 
@@ -23,9 +24,11 @@ class Browser(object):
 class JSBrowser(object):
 
     def __init__(self):
-        web_driver_options = webdriver.ChromeOptions()
-        web_driver_options.add_argument('headless')
-        self.driver = webdriver.Chrome(options=web_driver_options)
+        options = Options()
+        options.add_argument('--headless')
+        options.add_argument('--no-sandbox')
+        options.add_argument("--disable-setuid-sandbox")
+        self.driver = webdriver.Chrome(options=options)
 
     def get_page(self, url):
         if validators.url(url):

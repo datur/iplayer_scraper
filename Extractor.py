@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from browser_class import Browser, JSBrowser
 from dictionary_builder import DictionaryBuilder
 from datetime import datetime
+from tqdm import tqdm
 import time
 
 
@@ -37,27 +38,49 @@ class Extractor(object):
         ]
 
         # for loop for each page in a-z
-        for suffix in navigation_list:
-            print(suffix)
-            web_page = self.Browser.get_page(self._BASE_URL + suffix)
+        for suffix in tqdm(navigation_list):
+            self.alphabet_char_extrator(suffix, filename)
+            # print(suffix)
+            # web_page = self.Browser.get_page(self._BASE_URL + suffix)
 
-            program_selection = web_page.find_all(
-                'li', attrs={"class": "grid__item"})
+            # program_selection = web_page.find_all(
+            #     'li', attrs={"class": "grid__item"})
 
-            # loop for each program on the current alphabet page
-            for program_box in program_selection:
+            # # loop for each program on the current alphabet page
+            # for program_box in tqdm(program_selection):
                 
-                latest_episode_url = self.iplayer_atoz_page_extractor(program_box)
+            #     latest_episode_url = self.iplayer_atoz_page_extractor(program_box)
 
-                program_website_url = self.latest_episode_extractor(self._BASE_URL +
-                                                                    latest_episode_url)
+            #     program_website_url = self.latest_episode_extractor(self._BASE_URL +
+            #                                                         latest_episode_url)
 
-                # extract main information form the program website
-                if program_website_url is not None:
-                    self.program_microsite_extractor(program_website_url)
+            #     # extract main information form the program website
+            #     if program_website_url is not None:
+            #         self.program_microsite_extractor(program_website_url)
 
-                self.dictionary.to_file(filename)
-                self.dictionary.clear()
+            #     self.dictionary.to_file(filename)
+            #     self.dictionary.clear()
+
+    def alphabet_char_extrator(self, suffix, filename):
+        web_page = self.Browser.get_page(self._BASE_URL + suffix)
+
+        program_selection = web_page.find_all(
+            'li', attrs={"class": "grid__item"})
+
+        # loop for each program on the current alphabet page
+        for program_box in tqdm(program_selection):
+            
+            latest_episode_url = self.iplayer_atoz_page_extractor(program_box)
+
+            program_website_url = self.latest_episode_extractor(self._BASE_URL +
+                                                                latest_episode_url)
+
+            # extract main information form the program website
+            if program_website_url is not None:
+                self.program_microsite_extractor(program_website_url)
+
+            self.dictionary.to_file(filename)
+            self.dictionary.clear()
 
     def iplayer_atoz_page_extractor(self, program_selection):
         '''arguement is soup div tag for a program.
@@ -72,7 +95,7 @@ class Extractor(object):
 
         if title is not None:
             title = title.get_text()
-            print(title)
+            #(title)
         else:
             title = program_selection.find(
                 'div', attrs={'class': 'content-item__title'})
@@ -137,7 +160,7 @@ class Extractor(object):
             channel = channel_check.find('a', attrs={'class':'menu__product'})
         
             if channel['href'] == '/cbbc' or channel['href'] == '/cbeebies':
-                print(program_website_url)
+                #print(program_website_url)
                 self.extract_childrens(web_page)
         else:
             genres, formats = self.get_genre(web_page)
@@ -350,73 +373,74 @@ class Extractor(object):
 
             main_episode_info = episode_web_page.find(
                 'div', attrs={'class': 'grid-wrapper grid-wrapper--flush map map--episode map--count-2'})
+            if main_episode_info is not None:
+                episode_longest_synopsis = main_episode_info.find(
+                    'div', attrs={'class': 'text--prose longest-synopsis'})
+                if episode_longest_synopsis is not None:
+                    episode_longest_synopsis = episode_longest_synopsis.find_all('p')
+                    episode_longest_synopsis = ' '.join(
+                        [x.get_text() for x in episode_longest_synopsis])
+                    episode_dict['episode'].update({'long_synopsis': episode_longest_synopsis})
 
-            episode_longest_synopsis = main_episode_info.find(
-                'div', attrs={'class': 'text--prose longest-synopsis'})
-            if episode_longest_synopsis is not None:
-                episode_longest_synopsis = episode_longest_synopsis.find_all('p')
-                episode_longest_synopsis = ' '.join(
-                    [x.get_text() for x in episode_longest_synopsis])
-                episode_dict['episode'].update({'long_synopsis': episode_longest_synopsis})
+                series_id = main_episode_info.find('div', attrs={'class': 'offset'})
 
-            series_id = main_episode_info.find('div', attrs={'class': 'offset'})
+                if series_id is not None:
+                    series_id_name = series_id.find_all('a')
+                    series_id = series_id_name[-1]['href']
+                    episode_dict['episode'].update({'series_id': series_id.split('/')[-1]})
+                    series_name = series_id_name[-1].get_text()
+                    episode_dict['episode'].update({'series_name': series_name})
 
-            if series_id is not None:
-                series_id_name = series_id.find_all('a')
-                series_id = series_id_name[-1]['href']
-                episode_dict['episode'].update({'series_id': series_id.split('/')[-1]})
-                series_name = series_id_name[-1].get_text()
-                episode_dict['episode'].update({'series_name': series_name})
+                left_to_watch_dict = self.get_left_to_watch(episode_web_page)
+                # this needs refactoring into a METHOD
+                if left_to_watch_dict is not None:
+                    episode_dict['episode'].update(left_to_watch_dict)
 
-            left_to_watch_dict = self.get_left_to_watch(episode_web_page)
-            # this needs refactoring into a METHOD
-            if left_to_watch_dict is not None:
-                episode_dict['episode'].update(left_to_watch_dict)
+                '''
+                TODO: drill down from each of these main tag containers to get the info needed
+                in the code below need to get next on if available last on, credits, credits, episode music
+                supporting items ie podcast information and enrichers, and the genre.
+                '''
 
-            '''
-            TODO: drill down from each of these main tag containers to get the info needed
-            in the code below need to get next on if available last on, credits, credits, episode music
-            supporting items ie podcast information and enrichers, and the genre.
-            '''
+                # Last on next on section
+                last_on_next_on = episode_web_page.find(
+                    'div', attrs={'class': 'grid 1/3@bpw2 1/3@bpe map__column map__column--2 map__column--last'})
 
-            # Last on next on section
-            last_on_next_on = episode_web_page.find(
-                'div', attrs={'class': 'grid 1/3@bpw2 1/3@bpe map__column map__column--2 map__column--last'})
+                last_on = last_on_next_on.find(
+                    'div', attrs={'data-map-column': 'tx', 'class': 'br-box-secondary'})
 
-            last_on = last_on_next_on.find(
-                'div', attrs={'data-map-column': 'tx', 'class': 'br-box-secondary'})
+                last_broadcast = self.get_last_on(last_on) if last_on is not None else None
+                episode_dict['episode'].update({'broadcast': {'last_on': last_broadcast}})
 
-            last_broadcast = self.get_last_on(last_on) if last_on is not None else None
-            episode_dict['episode'].update({'broadcast': {'last_on': last_broadcast}})
+                # role credits and music credits also contains featured in - for boxsets ie soaps
+                credits_box = episode_web_page.find(
+                    'div', attrs={'class': 'grid grid--bounded 13/24@bpw2 13/24@bpe'})
 
-            # role credits and music credits also contains featured in - for boxsets ie soaps
-            credits_box = episode_web_page.find(
-                'div', attrs={'class': 'grid grid--bounded 13/24@bpw2 13/24@bpe'})
+                credits_dict = self.get_episode_credits(credits_box)
+                episode_dict['episode'].update({"credits": credits_dict})
 
-            credits_dict = self.get_episode_credits(credits_box)
-            episode_dict['episode'].update({"credits": credits_dict})
+                music_played = self.get_episode_music(credits_box)
+                episode_dict['episode'].update({'music': music_played})
 
-            music_played = self.get_episode_music(credits_box)
-            episode_dict['episode'].update({'music': music_played})
+                # promo and supporting material
+                supporting_items = episode_web_page.find(
+                    'div', attrs={'class': 'grid grid--bounded 11/24@bpw2 11/24@bpe'})
 
-            # promo and supporting material
-            supporting_items = episode_web_page.find(
-                'div', attrs={'class': 'grid grid--bounded 11/24@bpw2 11/24@bpe'})
+                supporting_items_dict = self.get_episode_supportingitems(supporting_items)
+                episode_dict['episode'].update({'supporting_content': supporting_items_dict})
 
-            supporting_items_dict = self.get_episode_supportingitems(supporting_items)
-            episode_dict['episode'].update({'supporting_content': supporting_items_dict})
+                genres, formats = self.get_genre(episode_web_page)
+                episode_dict['episode'].update({'genre': genres, 'format': formats})
 
-            genres, formats = self.get_genre(episode_web_page)
-            episode_dict['episode'].update({'genre': genres, 'format': formats})
+                featured_in_dict = self.get_featured_in(episode_web_page)
+                episode_dict['episode'].update({'collection': featured_in_dict})
 
-            featured_in_dict = self.get_featured_in(episode_web_page)
-            episode_dict['episode'].update({'collection': featured_in_dict})
+                episode_broadcasts = self.get_boadcast_info(episode_web_page)
+                episode_dict['episode']['broadcast'].update({'previous_broadcasts': episode_broadcasts})
 
-            episode_broadcasts = self.get_boadcast_info(episode_web_page)
-            episode_dict['episode']['broadcast'].update({'previous_broadcasts': episode_broadcasts})
-
-            episodes_list.append(episode_dict)
-
+                episodes_list.append(episode_dict)
+            else: 
+                print(self.Browser.current_url)
         self.dictionary.add('episodes', {'available': episodes_list})
 
         return episodes_list
@@ -550,6 +574,20 @@ class Extractor(object):
             return credits_dict
         else:
             return None
+    
+    def get_credits(self, web_page):
+        credits_table = web_page.find(
+            'table', attrs={'class': 'table table--slatted-vertical no-margin-vertical'})
+
+        credits_list = []
+
+        if credits_table:
+            for row in credits_table.find_all('tr'):
+                person = row.find_all('span')
+                if len(person) > 1:
+                    json_credits = [x.get_text() for x in person]
+                    credits_list.append({'role': json_credits[0], 'person': json_credits[1]})
+        return {'credits':credits_list}
 
     def get_episode_music(self, web_page):
         music_location = web_page.find(
@@ -802,8 +840,8 @@ class Extractor(object):
                 link_details = content.find('a')
                 link = link_details['href']
 
-                _id = link.split('/')[-1]
-                print(_id)
+                _id = link.split('/')[-1] if link.split('/')[-1] is not "ad" else link.split('/')[-2]
+                #print(_id)
 
                 content_type = link_details['data-site-section']
 
