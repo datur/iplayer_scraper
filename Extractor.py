@@ -25,7 +25,7 @@ class Extractor(object):
         
 
         filename = str('bbc_iplayer_scraped_' +
-                       datetime.now().strftime("%Y-%m-%d %H:%M:%S") + '.json')
+                       datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + '.json')
 
         initial_page = self.Browser.get_page(self._BASE_URL +
                                              self._SCRAPING_SUFFIX)
@@ -605,20 +605,20 @@ class Extractor(object):
 
                 for music in music_list.find_all('li'):
                     info = music.find('div', attrs={'class': 'segment__track'})
-                    
-                    time_stamp = info.find(
-                        'div', attrs={'class': 'text--subtle pull--right-spaced'})
-                    time_stamp = time_stamp['aria-label'] if time_stamp is not None else None
-                    artist = info.find('h3', attrs={'class': 'gamma no-margin'})
+                    if info is not None:
+                        time_stamp = info.find(
+                            'div', attrs={'class': 'text--subtle pull--right-spaced'})
+                        time_stamp = time_stamp['aria-label'] if time_stamp is not None else None
+                        artist = info.find('h3', attrs={'class': 'gamma no-margin'})
 
-                    artist_url = artist.a['href'] if artist.a is not None else None
+                        artist_url = artist.a['href'] if artist.a is not None else None
 
-                    artist = artist.find('span', attrs={'class': 'artist'}).get_text()
-                    track = info.find('p', attrs={'class': 'no-margin'}).get_text()
-                    music_dict.append({'artist': artist,
-                                       'artist_url': artist_url,
-                                       'track': track,
-                                       'time_stamp': time_stamp})
+                        artist = artist.find('span', attrs={'class': 'artist'}).get_text()
+                        track = info.find('p', attrs={'class': 'no-margin'}).get_text()
+                        music_dict.append({'artist': artist,
+                                        'artist_url': artist_url,
+                                        'track': track,
+                                        'time_stamp': time_stamp})
                 return music_dict
             else:
                 return None
