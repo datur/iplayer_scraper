@@ -8,6 +8,7 @@ import sys
 from tqdm import tqdm
 import time
 from multiprocessing import Queue, Process
+from itertools import repeat
 
 
 def main():
@@ -38,16 +39,16 @@ def main():
 
     print(cpu_count())
 
-    processes = [Process(target=run_programme_extraction_per_char, args=(x, shared_list)) for x in navigation_list]
-    active = []
+    # processes = [Process(target=run_programme_extraction_per_char, args=(x, shared_list)) for x in navigation_list]
+    # active = []
 
-    with Manager() as manager:
-        for p in processes:
-            p.start()
-            active.append(p)
+    # with Manager() as manager:
+    #     for p in processes:
+    #         p.start()
+    #         active.append(p)
 
-        for p in active:
-            p.join()
+    #     for p in active:
+    #         p.join()
 
     
 
@@ -71,11 +72,11 @@ def main():
     # for p in processes:
     #      p.join()
 
-    # with Pool(cpu_count()-2) as p:
-    #     p.map(run_programme_extraction_per_char, (navigation_list, shared_list))
-    # p.close()
-    # p.join()
-    
+    with Pool(cpu_count()-2) as p:
+        p.starmap(run_programme_extraction_per_char, zip(navigation_list, repeat(shared_list)))
+    p.close()
+    p.join()
+
     results=[item for item in shared_list]
 
     print(results)
@@ -126,12 +127,12 @@ def run_programme_extraction_per_char(suffix, shared_list):
             programme_box_json=parse_programme_box(programme_box)
             dictionary.update(programme_box_json)
             # get and extract initial programme page
-            programme_microsite_url=parse_latest_episode(
-                browser, programme_box_json['latest_episode_url'])
-            if programme_microsite_url is not None:
-                programme_microsite_json=parse_programme_microsite(
-                    browser, programme_microsite_url)
-                dictionary.update(programme_microsite_json)
+            # programme_microsite_url=parse_latest_episode(
+            #     browser, programme_box_json['latest_episode_url'])
+            # if programme_microsite_url is not None:
+            #     programme_microsite_json=parse_programme_microsite(
+            #         browser, programme_microsite_url)
+            #     dictionary.update(programme_microsite_json)
 
             shared_list.append(dictionary)
 
