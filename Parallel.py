@@ -1,5 +1,5 @@
 from selenium import webdriver
-from multiprocessing import Pool, cpu_count, Lock, active_children, current_process
+from multiprocessing import Pool, cpu_count, Lock, active_children, current_process, Manager
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.options import Options
 import io
@@ -9,7 +9,6 @@ from tqdm import tqdm
 import time
 from multiprocessing import Queue, Process
 
-_FINISH = False
 
 def main():
 
@@ -17,11 +16,16 @@ def main():
 
     browser = get_driver()
 
+    manager = Manager()
+
+    shared_dict = manager.dict()
+    shared_list = manager.list()
+
     get_page(browser, url)
     html = browser.execute_script("return document.body.innerHTML")
     html = BeautifulSoup(html, 'lxml')
 
-    queue = Queue()
+    
 
     atoz = html.find('div', attrs={'class': "atoz-nav__inner"})
     navigation = atoz.find('ul', attrs={'class': 'scrollable-nav__track'})
@@ -34,35 +38,45 @@ def main():
 
     print(cpu_count())
 
-    processes = [Process(target=run_programme_extraction_per_char, args=(x, queue)) for x in navigation_list]
-
+    processes = [Process(target=run_programme_extraction_per_char, args=(x, shared_list)) for x in navigation_list]
     active = []
 
-    for p in processes:
-        while len(active_children()) >= (cpu_count()-2):
-            for task in active:
-                print(f"active task: {task}")
-                print(task.is_alive())
-                #task.join()
-            # if _FINISH:
-            #     p.join()
-            sys.stdout.flush()
-            print(f"current processes: {len(active_children())} waiting for execution slot")
-            time.sleep(60)
+    with Manager() as manager:
+        for p in processes:
+            p.start()
+            active.append(p)
 
-        p.start()
-        active.append(p)
-        print(len(active_children()))
-        
-        
+        for p in active:
+            p.join()
 
-    for p in processes:
-         p.join()
+    
+
+
+    # for p in processes:
+    #     p.start()
+    #     active.append(p)
+    #     print(len(active_children()))
+
+    #     while len(active_children()) >= (cpu_count()-2):
+    #         for task in active:
+    #             print(f"active task: {task} {'Task is alive' if task.is_alive() else 'Task Complete'}")
+    #         # if _FINISH:
+    #         #     p.join()
+    #         print(f"current processes: {len(active_children())}. Waiting for execution slot \n")
+    #         time.sleep(10)
+
+    # for p in processes:
+    #      p.start()
+
+    # for p in processes:
+    #      p.join()
 
     # with Pool(cpu_count()-2) as p:
-    #     p.map(run_programme_extraction_per_char, (navigation_list, queue,))
-
-    results=[queue.get() for item in range(len(navigation_list))]
+    #     p.map(run_programme_extraction_per_char, (navigation_list, shared_list))
+    # p.close()
+    # p.join()
+    
+    results=[item for item in shared_list]
 
     print(results)
     print('finished')
@@ -80,7 +94,7 @@ def get_driver():
 
 
 def get_page(browser, url):
-    time.sleep(1)
+    time.sleep(10)
     try:
         browser.get(url)
 
@@ -88,11 +102,9 @@ def get_page(browser, url):
         print(f'browser: {url} failed to load')
 
 
-def run_programme_extraction_per_char(suffix, queue):
+def run_programme_extraction_per_char(suffix, shared_list):
 
-    global _FINISH
-
-    print(suffix.split('/')[-1])
+    #print(suffix.split('/')[-1])
 
     browser=get_driver()
     url=f'http://bbc.co.uk{suffix}'
@@ -121,11 +133,9 @@ def run_programme_extraction_per_char(suffix, queue):
                     browser, programme_microsite_url)
                 dictionary.update(programme_microsite_json)
 
-            queue.put(dictionary)
+            shared_list.append(dictionary)
 
-    browser.quit
-    _FINISH = True
-
+    browser.quit()
 
 
 def run_programme_extraction_per_programme(programme_box, filename):
