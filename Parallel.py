@@ -39,10 +39,11 @@ def main():
     active = []
 
     for p in processes:
-        while len(active_children()) > cpu_count()-1:
-            print(current_process())
+        while len(active_children()) >= (cpu_count()-2):
             for task in active:
-                task.join()
+                print(f"active task: {task}")
+                print(task.is_alive())
+                #task.join()
             # if _FINISH:
             #     p.join()
             sys.stdout.flush()
@@ -52,7 +53,7 @@ def main():
         p.start()
         active.append(p)
         print(len(active_children()))
-        print(current_process())
+        
         
 
     for p in processes:
