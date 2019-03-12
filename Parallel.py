@@ -1,5 +1,5 @@
 from selenium import webdriver
-from multiprocessing import Pool, cpu_count, Lock
+from multiprocessing import Pool, cpu_count, Lock, active_children, current_process
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.options import Options
 import io
@@ -9,6 +9,7 @@ from tqdm import tqdm
 import time
 from multiprocessing import Queue, Process
 
+_FINISH = False
 
 def main():
 
@@ -31,18 +32,34 @@ def main():
 
     browser.quit
 
+    print(cpu_count())
+
     processes = [Process(target=run_programme_extraction_per_char, args=(x, queue)) for x in navigation_list]
 
+    active = []
+
     for p in processes:
+        while len(active_children()) > cpu_count()-1:
+            print(current_process())
+            for task in active:
+                task.join()
+            # if _FINISH:
+            #     p.join()
+            sys.stdout.flush()
+            print(f"current processes: {len(active_children())} waiting for execution slot")
+            time.sleep(60)
+
         p.start()
-        time.sleep(1)
+        active.append(p)
+        print(len(active_children()))
+        print(current_process())
+        
 
-    # for p in processes:
-    #     p.join()
-
+    for p in processes:
+         p.join()
 
     # with Pool(cpu_count()-2) as p:
-    #     p.map(run_programme_extraction_per_char, (navigation_list, queue))
+    #     p.map(run_programme_extraction_per_char, (navigation_list, queue,))
 
     results=[queue.get() for item in range(len(navigation_list))]
 
@@ -71,6 +88,8 @@ def get_page(browser, url):
 
 
 def run_programme_extraction_per_char(suffix, queue):
+
+    global _FINISH
 
     print(suffix.split('/')[-1])
 
@@ -104,6 +123,7 @@ def run_programme_extraction_per_char(suffix, queue):
             queue.put(dictionary)
 
     browser.quit
+    _FINISH = True
 
 
 
@@ -416,7 +436,7 @@ def upcoming_episodes(browser, url):
             temp_dict.update(microsite_info)
 
             next_up.append(temp_dict)
-        dictionary.update({'episodes', {'next_up': next_up}})
+        dictionary.update({'episodes': {'next_up': next_up}})
     return next_up
 
 
