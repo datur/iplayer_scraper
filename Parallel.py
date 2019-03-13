@@ -3,6 +3,7 @@ from multiprocessing import Pool, cpu_count, Lock, active_children, current_proc
 from bs4 import BeautifulSoup
 from selenium.webdriver.chrome.options import Options
 import io
+import datetime
 import json
 import sys
 from tqdm import tqdm
@@ -35,7 +36,7 @@ def main():
         x.a['href'] for x in navigation_list if x.a is not None
     ]
 
-    browser.quit
+    browser.quit()
 
     print(cpu_count())
 
@@ -72,16 +73,30 @@ def main():
     # for p in processes:
     #      p.join()
 
-    with Pool(cpu_count()-2) as p:
+    processes = cpu_count() - 2 
+    if cpu_count()-2 > 8: processes = 8
+
+    with Pool(processes) as p:
         p.starmap(run_programme_extraction_per_char, zip(navigation_list, repeat(shared_list)))
     p.close()
     p.join()
 
-    results=[item for item in shared_list]
+    file_name = str('bbc_iplayer_scraped_' +
+                       datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + '.json')
 
-    print(results)
+    for character in shared_list:
+        
+        write_file(file_name, character)
+    
+    
+    
     print('finished')
 
+def write_file(file_name, payload):
+    
+    with open(file_name, 'a') as f:
+        json.dump(payload, f)
+        f.write('\n')
 
 def get_driver():
     options=Options()
@@ -95,7 +110,7 @@ def get_driver():
 
 
 def get_page(browser, url):
-    time.sleep(10)
+    #time.sleep(0.75)
     try:
         browser.get(url)
 
@@ -118,21 +133,22 @@ def run_programme_extraction_per_char(suffix, shared_list):
         # find each programme box
         programme_selection=html.find_all(
             'li', attrs = {"class": "grid__item"})
-
+        
         # for each programme box
-        for programme_box in tqdm(programme_selection):
-
+        for programme_box in tqdm(programme_selection, desc=suffix.split('/')[-1]):
+            
             dictionary={}
 
             programme_box_json=parse_programme_box(programme_box)
             dictionary.update(programme_box_json)
             # get and extract initial programme page
-            # programme_microsite_url=parse_latest_episode(
-            #     browser, programme_box_json['latest_episode_url'])
-            # if programme_microsite_url is not None:
-            #     programme_microsite_json=parse_programme_microsite(
-            #         browser, programme_microsite_url)
-            #     dictionary.update(programme_microsite_json)
+            
+            programme_microsite_url=parse_latest_episode(
+                browser, programme_box_json['latest_episode_url'])
+            if programme_microsite_url is not None:
+                programme_microsite_json=parse_programme_microsite(
+                    browser, programme_microsite_url)
+                dictionary.update(programme_microsite_json)
 
             shared_list.append(dictionary)
 
@@ -672,12 +688,6 @@ def extract_childrens(browser, web_page):
         programme_dict.update({'episodes': episode_items})
 
     return programme_dict
-
-
-def write_file(file_name, payload):
-    with open(file_name, 'a+') as f:
-        json.dump(payload, f)
-        f.write('\n')
 
 
 def get_genre(web_page):
