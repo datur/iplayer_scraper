@@ -1,7 +1,7 @@
 from selenium import webdriver
 from multiprocessing import Pool, cpu_count, Lock, active_children, current_process, Manager
 from bs4 import BeautifulSoup
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.options import Options
 import io
 import datetime
 import json
@@ -12,69 +12,22 @@ from multiprocessing import Queue, Process
 from itertools import repeat
 
 
-def main():
+def extract():
+    '''method for fully extracting the bbc iplayer catalogue in parallel
+    currently writes to json in pwd with the file name
+    bbc_iplayer_scraped_Year-Month-Date-Hour-Minute-Second
+    '''
 
-    url = "http://bbc.co.uk/iplayer/a-z"
+    print('Scraping the full BBC Iplayer catalogue')
 
-    browser = get_driver()
+    navigation_list = get_alphabet_suffix_list()
 
     manager = Manager()
-
-    shared_dict = manager.dict()
     shared_list = manager.list()
-
-    get_page(browser, url)
-    html = browser.execute_script("return document.body.innerHTML")
-    html = BeautifulSoup(html, 'lxml')
-
-    
-
-    atoz = html.find('div', attrs={'class': "atoz-nav__inner"})
-    navigation = atoz.find('ul', attrs={'class': 'scrollable-nav__track'})
-    navigation_list = navigation.find_all('li')
-    navigation_list = [
-        x.a['href'] for x in navigation_list if x.a is not None
-    ]
-
-    browser.quit()
 
     print(cpu_count())
 
-    # processes = [Process(target=run_programme_extraction_per_char, args=(x, shared_list)) for x in navigation_list]
-    # active = []
-
-    # with Manager() as manager:
-    #     for p in processes:
-    #         p.start()
-    #         active.append(p)
-
-    #     for p in active:
-    #         p.join()
-
-    
-
-
-    # for p in processes:
-    #     p.start()
-    #     active.append(p)
-    #     print(len(active_children()))
-
-    #     while len(active_children()) >= (cpu_count()-2):
-    #         for task in active:
-    #             print(f"active task: {task} {'Task is alive' if task.is_alive() else 'Task Complete'}")
-    #         # if _FINISH:
-    #         #     p.join()
-    #         print(f"current processes: {len(active_children())}. Waiting for execution slot \n")
-    #         time.sleep(10)
-
-    # for p in processes:
-    #      p.start()
-
-    # for p in processes:
-    #      p.join()
-
     processes = cpu_count() - 2 
-    if cpu_count()-2 > 8: processes = 8
 
     with Pool(processes) as p:
         p.starmap(run_programme_extraction_per_char, zip(navigation_list, repeat(shared_list)))
@@ -88,39 +41,75 @@ def main():
         
         write_file(file_name, character)
     
-    
-    
     print('finished')
 
-def write_file(file_name, payload):
-    
+def write_file(file_name, data):
     with open(file_name, 'a') as f:
-        json.dump(payload, f)
+        json.dump(data, f)
         f.write('\n')
 
+def get_alphabet_suffix_list():
+    url = "http://bbc.co.uk/iplayer/a-z"
+    browser = get_driver()
+    get_page(browser, url)
+    html = browser.execute_script("return document.body.innerHTML")
+    html = BeautifulSoup(html, 'lxml')
+    browser.quit()
+
+    atoz = html.find('div', attrs={'class': "atoz-nav__inner"})
+    navigation = atoz.find('ul', attrs={'class': 'scrollable-nav__track'})
+    navigation_list = navigation.find_all('li')
+
+
+    return [
+        x.a['href'] for x in navigation_list if x.a is not None
+    ]
+
+
 def get_driver():
+    '''method that creates a selenium webdriver. This is configured to be headless
+    and is using the chrome webdriver currently
+
+    Returns:
+        selenium.webdriver.Chrome -- currently a chrome webdriver running headless
+    '''
     options=Options()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument("--disable-setuid-sandbox")
     options.add_argument('--disable-logging')
     # initialize driver
-    driver=webdriver.Chrome(options = options)
+    driver=webdriver.Firefox(options = options)
     return driver
 
 
-def get_page(browser, url):
-    #time.sleep(0.75)
+def get_page(browser, url, sleep=False, retry=False):
+    '''method for loading a webpage using a selenium webdriver
+    
+    Arguments:
+        browser {selenium.webdriver.{drivertype}}
+        url {str} -- a url formatted correctly
+    
+    Keyword Arguments:
+        sleep {int} -- if sleep is needed between each request (default: {False})
+    '''
+    
+    if sleep is not False:
+        time.sleep(sleep)
+
     try:
         browser.get(url)
-
+        
     except:
         print(f'browser: {url} failed to load')
+        
+        if retry is False:
+            print('retrying...')
+            get_page(browser, url, retry=True)
+
 
 
 def run_programme_extraction_per_char(suffix, shared_list):
-
-    #print(suffix.split('/')[-1])
 
     browser=get_driver()
     url=f'http://bbc.co.uk{suffix}'
@@ -154,9 +143,6 @@ def run_programme_extraction_per_char(suffix, shared_list):
 
     browser.quit()
 
-
-def run_programme_extraction_per_programme(programme_box, filename):
-    pass
 
 
 def parse_programme_box(programme_box):
@@ -314,7 +300,7 @@ def episodes(browser, html):
         html_base = BeautifulSoup(html_base, 'lxml')
 
         episodes_available = []
-        episodes_available.append(episode_list_extractor(browser, html))
+        episodes_available.append(episode_list_extractor(browser, html_base))
 
         episode_pagination = html_base.find(
             'ol', attrs={'class': 'nav nav--banner pagination delta'})
@@ -1080,17 +1066,18 @@ def get_episode_supportingitems(web_page):
     '''
     supporting_items = []
     content_list = web_page.find_all('div', recursive=False)
-    for content in content_list:
+    if content_list is not None:
+        for content in content_list:
+            if content is not None:
+                title = content.find('h2').get_text() if content.find('h2') else None
+        
+                link = content.find('a', attrs={'class': 'superpromo__img'})
+                link = link['href'] if link is not None else None
 
-        title = content.find('h2').get_text()
+                summary = content.find('div', attrs={'class': 'superpromo__content'})
+                summary = summary.find('p').get_text() if summary is not None else None
 
-        link = content.find('a', attrs={'class': 'superpromo__img'})
-        link = link['href'] if link is not None else None
-
-        summary = content.find('div', attrs={'class': 'superpromo__content'})
-        summary = summary.find('p').get_text() if summary is not None else None
-
-        supporting_items.append({'title': title,
+                supporting_items.append({'title': title,
                                     'link': link,
                                     'summary': summary})
 
@@ -1103,17 +1090,18 @@ def get_featured_in(web_page):
     if featured_in is not None:
         featured_list = featured_in.find('ul', attrs={'class': 'list-unstyled'})
 
-        featured_in_dict = []
+        featured_in = []
 
         for item in featured_list.find_all('li'):
             item_info = item.find('a', attrs={'class': 'br-blocklink__link block-link__target'})
-            title = item_info.find('span').get_text()
-            subtitle = item.find('p').get_text()
-            link = item_info['href']
-            featured_in_dict.append({'title': title,
-                                        'subtitle': subtitle,
-                                        'link': link})
-        return featured_in_dict
+            if item_info is not None:
+                title = item_info.find('span').get_text()
+                subtitle = item.find('p').get_text()
+                link = item_info['href']
+                featured_in.append({'title': title,
+                                            'subtitle': subtitle,
+                                            'link': link})
+        return featured_in
     else:
         return None
 
@@ -1145,4 +1133,4 @@ def get_boadcast_info(web_page):
         return None
 
 if __name__ == '__main__':
-    main()
+    extract()
