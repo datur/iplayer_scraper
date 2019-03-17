@@ -103,9 +103,9 @@ def get_page(browser, url, sleep=False, retry=False):
     except:
         print(f'browser: {url} failed to load')
         
-        if retry is False:
-            print('retrying...')
-            get_page(browser, url, retry=True)
+        # if retry is False:
+        #     print('retrying...')
+        #     get_page(browser, url, retry=True)
 
 
 
@@ -135,6 +135,8 @@ def run_programme_extraction_per_char(suffix, shared_list):
             programme_microsite_url=parse_latest_episode(
                 browser, programme_box_json['latest_episode_url'])
             if programme_microsite_url is not None:
+                _id = programme_microsite_url.split('/')[-1]
+                dictionary.update({'id':_id})
                 programme_microsite_json=parse_programme_microsite(
                     browser, programme_microsite_url)
                 dictionary.update(programme_microsite_json)
@@ -272,7 +274,12 @@ def parse_programme_microsite(browser, url):
             browser, 'http://bbc.co.uk' + url + '/recommendations')
         dictionary.update({'recommendations': recommendation_dictionary})
 
-        episodes(browser, html)
+        episodes_available, episodes_upcoming = episodes(browser, html)
+
+        if episodes_available is not None:
+            dictionary.update({'episodes': {'available': episodes_available}})
+        if episodes_upcoming:
+            dictionary.update({'episodes': {'upcoming': episodes_upcoming}})
 
     return dictionary
 
@@ -285,6 +292,10 @@ def episodes(browser, html):
             'class': 'br-nav__link',
             'data-linktrack': 'nav_episodes'
         })
+
+    episodes_available = []
+    episodes_upcoming = None
+    
 
     if episodes_link is not None:
 
@@ -299,7 +310,7 @@ def episodes(browser, html):
 
         html_base = BeautifulSoup(html_base, 'lxml')
 
-        episodes_available = []
+        
         episodes_available.append(episode_list_extractor(browser, html_base))
 
         episode_pagination = html_base.find(
@@ -330,7 +341,8 @@ def episodes(browser, html):
 
         if next_on[-1].a:
             episodes_upcoming = upcoming_episodes(browser, 'http://bbc.co.uk'+next_on[-1].a['href'])
-            episodes_available.append(episodes_upcoming)
+            
+    return episodes_available, episodes_upcoming
 
 
 def upcoming_episodes(browser, url):
