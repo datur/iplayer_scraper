@@ -25,9 +25,10 @@ def extract():
     manager = Manager()
     shared_list = manager.list()
 
-    print(cpu_count())
+    
 
     processes = cpu_count() - 2 
+    print(f'using {processes} processes')
 
     with Pool(processes) as p:
         p.starmap(run_programme_extraction_per_char, zip(navigation_list, repeat(shared_list)))
@@ -54,7 +55,7 @@ def get_alphabet_suffix_list():
     get_page(browser, url)
     html = browser.execute_script("return document.body.innerHTML")
     html = BeautifulSoup(html, 'lxml')
-    browser.quit()
+    browser.close()
 
     atoz = html.find('div', attrs={'class': "atoz-nav__inner"})
     navigation = atoz.find('ul', attrs={'class': 'scrollable-nav__track'})
@@ -103,9 +104,9 @@ def get_page(browser, url, sleep=False, retry=False):
     except:
         print(f'browser: {url} failed to load')
         
-        # if retry is False:
-        #     print('retrying...')
-        #     get_page(browser, url, retry=True)
+        if retry is False:
+            print('retrying...')
+            get_page(browser, url, retry=True)
 
 
 
@@ -143,7 +144,7 @@ def run_programme_extraction_per_char(suffix, shared_list):
 
             shared_list.append(dictionary)
 
-    browser.quit()
+    browser.close()
 
 
 
@@ -178,6 +179,8 @@ def parse_programme_box(programme_box):
         if synopsis is not None:
             synopsis = synopsis.get_text()
             programme_box_dict.update({'synopsis': synopsis})
+        else:
+            synopsis = programme_box.find('p', attrs={'class':'list-content-item__synopsis typo typo--bullfinch gel-hide-lte@s'})
 
     # Link to latest episode
     latest_episode_url = programme_box.find('a', href=True)['href']
@@ -192,17 +195,6 @@ def parse_programme_box(programme_box):
         programme_box_dict.update({'episodes_available': episodes_available})
 
     return programme_box_dict
-
-
-def parse_pogramme(browser, url):
-    '''main parser method
-
-    Arguments:
-        browser {selenium web driver}
-        url {url} -- formatted url relating to a bbc iplayer programme
-    '''
-
-    pass
 
 
 def parse_latest_episode(browser, url):
@@ -223,7 +215,7 @@ def parse_latest_episode(browser, url):
         program_website_url = html.find(
             'a', attrs={'class': 'lnk'}, text='Programme website')
     else:
-        print('\n\n\n', url, '\n\n\n')
+        print('\n Could not get html at: ', url, '\n')
 
     if program_website_url:
         program_website_url = program_website_url['href']
@@ -262,7 +254,7 @@ def parse_programme_microsite(browser, url):
 
         try:
             synopsis = programme_synopsis(html)
-            dictionary.update({'synopsis': synopsis})
+            dictionary.update({'alt-synopsis': synopsis})
 
         except Exception as e:
             print('Error ', e, ' at:', url)
@@ -359,110 +351,122 @@ def upcoming_episodes(browser, url):
         'ol', attrs={'class': 'highlight-box-wrapper'})
 
     next_up = []
-    if next_on_section:
+    if next_on_section is not None:
 
         for item in next_on_section.find_all('li'):
+            tmp_dict = {}
+            if item is not None:
 
-            broadcast_info = item.find(
-                'div',
-                attrs={'class': 'programme__body programme__body--flush'})
-            broadcast_info_tag = broadcast_info.find(
-                'div', attrs={'class': 'broadcast-event__time beta'})
+                broadcast_info = item.find(
+                    'div',
+                    attrs={'class': 'programme__body programme__body--flush'})
+                if broadcast_info is not None:
+                    broadcast_info_tag = broadcast_info.find(
+                        'div', attrs={'class': 'broadcast-event__time beta'})
 
-            broadcast_date = broadcast_info_tag['title']
-            broadcast_day = broadcast_info_tag.find(
-                'span',
-                attrs={
-                    'class':
-                    'broadcast-event__date text-base timezone--date'
-                }).get_text()
-            broadcast_time = broadcast_info_tag.find(
-                'span', attrs={
-                    'class': 'timezone--time'
-                }).get_text()
+                    broadcast_date = broadcast_info_tag['title']
+                    broadcast_day = broadcast_info_tag.find(
+                        'span',
+                        attrs={
+                            'class':
+                            'broadcast-event__date text-base timezone--date'
+                        }).get_text()
+                    broadcast_time = broadcast_info_tag.find(
+                        'span', attrs={
+                            'class': 'timezone--time'
+                        }).get_text()
 
-            broadcast_channel = broadcast_info.find(
-                'div',
-                attrs={
-                    'class':
-                    'programme__service box-link__elevated micro text--subtle'
-                })
+                    broadcast_channel = broadcast_info.find(
+                        'div',
+                        attrs={
+                            'class':
+                            'programme__service box-link__elevated micro text--subtle'
+                        })
 
-            channel = broadcast_channel.a.get_text()
-            channel_url = broadcast_channel.a['href']
+                    channel = broadcast_channel.a.get_text() if broadcast_channel.a is not None else None
+                    channel_url = broadcast_channel.a['href'] if broadcast_channel.a is not None else None
 
-            program_info = item.find(
-                'div',
-                attrs={
-                    'class': 'grid 7/12 2/3@bpb2 3/4@bpw 5/6@bpw2 5/6@bpe'
-                })
-            program_title_info = program_info.find(
-                'a',
-                attrs={'class': 'br-blocklink__link block-link__target'})
+                    tmp_dict.update({
+                        'channel': {
+                            'name': channel,
+                            'link': channel_url},
+                        'broadcast': {
+                            'date': broadcast_date,
+                            'day': broadcast_day,
+                            'time': broadcast_time
+                            }})
 
-            program_id = program_info.find(
-                'div',
-                attrs={
-                    'class':
-                    'programme programme--tv programme--episode block-link'
-                })
-            if program_id is not None:
-                program_id = program_id['data-pid']
-            else:
-                program_id = program_info.find(
+                program_info = item.find(
                     'div',
                     attrs={
-                        'class':
-                        'programme programme--radio programme--episode block-link'
+                        'class': 'grid 7/12 2/3@bpb2 3/4@bpw 5/6@bpw2 5/6@bpe'
                     })
-                if program_id is not None:
-                    program_id = program_id['data-pid']
-                else:
+                
+                if program_info is not None:
+                    program_title_info = program_info.find(
+                        'a',
+                        attrs={'class': 'br-blocklink__link block-link__target'})
+
                     program_id = program_info.find(
                         'div',
                         attrs={
                             'class':
-                            'programme programme--episode block-link'
-                        })['data-pid']
+                            'programme programme--tv programme--episode block-link'
+                        })
+                    if program_id is not None:
+                        program_id = program_id['data-pid']
+                        tmp_dict.update({'id': program_id})
+                    else:
+                        program_id = program_info.find(
+                            'div',
+                            attrs={
+                                'class':
+                                'programme programme--radio programme--episode block-link'
+                            })
+                        if program_id is not None:
+                            program_id = program_id['data-pid']
+                            tmp_dict.update({'id': program_id})
+                        else:
+                            program_id = program_info.find(
+                                'div',
+                                attrs={
+                                    'class':
+                                    'programme programme--episode block-link'
+                                })['data-pid']
+                            tmp_dict.update({'id': program_id})
 
-            program_link = program_title_info['href']
-            program_title = program_title_info.find(
-                'span', attrs={'class': 'programme__title gamma'})
+                    if program_title_info is not None:
 
-            if program_title is not None:
-                program_title = program_title.get_text()
-            else:
-                print(program_title_info)
-            series = program_title_info.find(
-                'span', attrs={'class': 'programme__subtitle centi'})
-            if series:
-                series = series.get_text()
-            else:
-                series = None
-            program_synopsis = program_info.p.get_text()
+                        program_link = program_title_info['href']
+                        program_title = program_title_info.find(
+                            'span', attrs={'class': 'programme__title gamma'})
 
-            microsite_info = episode_microsite_extractor(browser, program_link, upcoming=True)
+                        if program_title is not None:
+                            program_title = program_title.get_text()
+                            tmp_dict.update({'program_title': program_title.strip()})
+                        else:
+                            print(program_title_info)
 
-            temp_dict = {
-                'id': program_id.strip(),
-                'program_title': program_title.strip(),
-                'series': series,
-                'program_synopsis': program_synopsis.strip(),
-                'program_link': program_link,
-                'channel': {
-                    'name': channel,
-                    'link': channel_url
-                },
-                'broadcast': {
-                    'date': broadcast_date,
-                    'day': broadcast_day,
-                    'time': broadcast_time
-                }
-            }
-            temp_dict.update(microsite_info)
+                        series = program_title_info.find(
+                            'span', attrs={'class': 'programme__subtitle centi'})
+                        if series:
+                            series = series.get_text()
+                            tmp_dict.update({'series': series})
+                        else:
+                            series = None
 
-            next_up.append(temp_dict)
-        dictionary.update({'episodes': {'next_up': next_up}})
+                        program_synopsis = program_info.p.get_text()
+                        if program_synopsis is not None:
+                            tmp_dict.update({'program_synopsis': program_synopsis.strip()})
+
+                        if program_link is not None:
+                            tmp_dict.update({'program_link': program_link})
+                            microsite_info = episode_microsite_extractor(browser, program_link, upcoming=True)
+                        
+                            if microsite_info is not None:
+                                tmp_dict.update(microsite_info)
+
+                        next_up.append(tmp_dict)
     return next_up
 
 
@@ -473,7 +477,7 @@ def full_recommend(browser, url):
         url {string of a url} -- this should be suffixed with '/recommendations'
     '''
 
-    dictionary = {}
+    recommendations = []
 
     get_page(browser, url)
 
@@ -486,7 +490,7 @@ def full_recommend(browser, url):
             'ol', attrs={'class': 'highlight-box-wrapper'})
 
         if page_items is not None:
-            recommendations = []
+            
             list_items = page_items.find_all('li')
 
             for item in list_items:
@@ -508,8 +512,8 @@ def full_recommend(browser, url):
                 })
                 tmp_dict.update(episode_microsite)
                 recommendations.append(tmp_dict)
-            dictionary.update({'recommendations': recommendations})
-    return dictionary
+            
+    return recommendations
 
 
 def supporting_content(web_page_element):
@@ -519,7 +523,7 @@ def supporting_content(web_page_element):
         web_page_element {beautifuloup element} -- should be related to a programme microsite
     '''
 
-    dictionary = {}
+    supporting_content_collection = []
 
     supporting_content = web_page_element.find(
         'div', attrs={'class': 'grid__item mpu-grid__left'})
@@ -527,7 +531,7 @@ def supporting_content(web_page_element):
         supporting_content_list = supporting_content.find_all(
             'li', attrs={'class': 'grid__item tlec-page-card'})
 
-        supporting_content_collection = []
+        
 
         for content in supporting_content_list:
             content_details = content.find('div', attrs={'class': 'media__body'})
@@ -538,8 +542,8 @@ def supporting_content(web_page_element):
             supporting_content_collection.append({'content_title': content_name,
                                                   'content_type': content_datatype,
                                                   'content_url': content_link})
-        dictionary.update({'supporting_content': supporting_content_collection})
-    return dictionary
+        
+    return supporting_content_collection
 
 
 def extract_childrens(browser, web_page):
