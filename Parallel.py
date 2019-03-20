@@ -270,7 +270,7 @@ def parse_programme_microsite(browser, url):
         dictionary.update({'episodes': {}})
 
         if episodes_available:
-            dictionary['episodes'].update({'episodes': {'available': episodes_available}})
+            dictionary['episodes'].update({'available': episodes_available})
         if episodes_upcoming:
             dictionary['episodes'].update({'upcoming': episodes_upcoming})
 
@@ -294,7 +294,7 @@ def episodes(browser, html):
         episodes_link = episodes_link['href']
 
         # debug
-        print(episodes_link)
+        #print(episodes_link)
 
         get_page(browser, 'http://bbc.co.uk' + episodes_link)
 
