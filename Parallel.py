@@ -147,7 +147,6 @@ def run_programme_extraction_per_char(suffix, shared_list):
     browser.close()
 
 
-
 def parse_programme_box(programme_box):
 
     programme_box_dict={}
@@ -268,10 +267,12 @@ def parse_programme_microsite(browser, url):
 
         episodes_available, episodes_upcoming = episodes(browser, html)
 
-        if episodes_available is not None:
-            dictionary.update({'episodes': {'available': episodes_available}})
+        dictionary.update({'episodes': {}})
+
+        if episodes_available:
+            dictionary['episodes'].update({'episodes': {'available': episodes_available}})
         if episodes_upcoming:
-            dictionary.update({'episodes': {'upcoming': episodes_upcoming}})
+            dictionary['episodes'].update({'upcoming': episodes_upcoming})
 
     return dictionary
 
@@ -287,14 +288,13 @@ def episodes(browser, html):
 
     episodes_available = []
     episodes_upcoming = None
-    
 
     if episodes_link is not None:
 
         episodes_link = episodes_link['href']
 
         # debug
-        # print(episodes_link)
+        print(episodes_link)
 
         get_page(browser, 'http://bbc.co.uk' + episodes_link)
 
@@ -302,7 +302,6 @@ def episodes(browser, html):
 
         html_base = BeautifulSoup(html_base, 'lxml')
 
-        
         episodes_available.append(episode_list_extractor(browser, html_base))
 
         episode_pagination = html_base.find(
@@ -333,7 +332,8 @@ def episodes(browser, html):
 
         if next_on[-1].a:
             episodes_upcoming = upcoming_episodes(browser, 'http://bbc.co.uk'+next_on[-1].a['href'])
-            
+
+    print(episodes_available)
     return episodes_available, episodes_upcoming
 
 
@@ -781,8 +781,6 @@ def episode_list_extractor(browser, web_page):
         'ol', attrs={'class': 'highlight-box-wrapper'})
     if episodes_available_list is not None:
         episodes_container_list = episodes_available_list.find_all('div', recursive=False)
-
-        
 
         for item in episodes_container_list:
 
