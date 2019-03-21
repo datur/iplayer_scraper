@@ -11,6 +11,14 @@ import time
 from multiprocessing import Queue, Process
 from itertools import repeat
 
+'''
+todo: add options for the call of the main extract
+options should be:
+    - main browser type - selenium only or mechanical soup and selenium where needed
+    - custom file mane
+    - firefox vs chrome selenium backend
+    - 
+'''
 
 def extract():
     '''method for fully extracting the bbc iplayer catalogue in parallel
@@ -24,8 +32,6 @@ def extract():
 
     manager = Manager()
     shared_list = manager.list()
-
-    
 
     processes = cpu_count() - 2 
     print(f'using {processes} processes')
@@ -60,7 +66,6 @@ def get_alphabet_suffix_list():
     atoz = html.find('div', attrs={'class': "atoz-nav__inner"})
     navigation = atoz.find('ul', attrs={'class': 'scrollable-nav__track'})
     navigation_list = navigation.find_all('li')
-
 
     return [
         x.a['href'] for x in navigation_list if x.a is not None
@@ -302,7 +307,7 @@ def episodes(browser, html):
 
         html_base = BeautifulSoup(html_base, 'lxml')
 
-        episodes_available.append(episode_list_extractor(browser, html_base))
+        episodes_available.extend(episode_list_extractor(browser, html_base))
 
         episode_pagination = html_base.find(
             'ol', attrs={'class': 'nav nav--banner pagination delta'})
@@ -323,7 +328,7 @@ def episodes(browser, html):
 
                 html = BeautifulSoup(html, 'lxml')
 
-                episodes_available.append(episode_list_extractor(browser, html))
+                episodes_available.extend(episode_list_extractor(browser, html))
 
         next_on = html_base.find(
             'ul', attrs={
