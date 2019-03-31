@@ -1,0 +1,40 @@
+# packages in environment at /home/dave/anaconda3/envs/web:
+#
+# Name                    Version                   Build  Channel
+astroid                   2.2.5                     <pip>
+autopep8                  1.4.3                     <pip>
+beautifulsoup4            4.7.1                     <pip>
+bs4                       0.0.1                     <pip>
+ca-certificates           2019.1.23                     0  
+certifi                   2019.3.9                 py37_0  
+icu                       58.2                 h9c2bf20_1  
+isort                     4.3.15                    <pip>
+lazy-object-proxy         1.3.1                     <pip>
+libedit                   3.1.20181209         hc058e9b_0  
+libffi                    3.2.1                hd88cf55_4  
+libgcc-ng                 8.2.0                hdf63c60_1  
+libstdcxx-ng              8.2.0                hdf63c60_1  
+libxml2                   2.9.9                he19cac6_0  
+libxslt                   1.1.33               h7d1a2b0_0  
+lxml                      4.3.2            py37hefd8a0e_0  
+mccabe                    0.6.1                     <pip>
+ncurses                   6.1                  he6710b0_1  
+openssl                   1.1.1b               h7b6447c_1  
+pip                       19.0.3                   py37_0  
+pycodestyle               2.5.0                     <pip>
+pylint                    2.3.1                     <pip>
+python                    3.7.2                h0371630_0  
+readline                  7.0                  h7b6447c_5  
+selenium                  3.141.0                   <pip>
+setuptools                40.8.0                   py37_0  
+six                       1.12.0                    <pip>
+soupsieve                 1.8                       <pip>
+sqlite                    3.27.2               h7b6447c_0  
+tk                        8.6.8                hbc83047_0  
+tqdm                      4.31.1                    <pip>
+typed-ast                 1.3.1                     <pip>
+urllib3                   1.24.1                    <pip>
+wheel                     0.33.1                   py37_0  
+wrapt                     1.11.1                    <pip>
+xz                        5.2.4                h14c3975_4  
+zlib                      1.2.11               h7b6447c_3  
