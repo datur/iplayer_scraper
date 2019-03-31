@@ -17,12 +17,10 @@ class Extractor(object):
         self._BASE_URL = 'https://www.bbc.co.uk'
         self._SCRAPING_SUFFIX = '/iplayer/a-z/'
         self.JSBrowser = JSBrowser()
-        
 
     def extract(self):
         '''main extractor method. This will return a dictionary'''
 
-        
 
         filename = str('bbc_iplayer_scraped_' +
                        datetime.now().strftime("%Y-%m-%d-%H-%M-%S") + '.json')
@@ -40,26 +38,6 @@ class Extractor(object):
         # for loop for each page in a-z
         for suffix in tqdm(navigation_list):
             self.alphabet_char_extrator(suffix, filename)
-            # print(suffix)
-            # web_page = self.Browser.get_page(self._BASE_URL + suffix)
-
-            # program_selection = web_page.find_all(
-            #     'li', attrs={"class": "grid__item"})
-
-            # # loop for each program on the current alphabet page
-            # for program_box in tqdm(program_selection):
-                
-            #     latest_episode_url = self.iplayer_atoz_page_extractor(program_box)
-
-            #     program_website_url = self.latest_episode_extractor(self._BASE_URL +
-            #                                                         latest_episode_url)
-
-            #     # extract main information form the program website
-            #     if program_website_url is not None:
-            #         self.program_microsite_extractor(program_website_url)
-
-            #     self.dictionary.to_file(filename)
-            #     self.dictionary.clear()
 
     def alphabet_char_extrator(self, suffix, filename):
         web_page = self.Browser.get_page(self._BASE_URL + suffix)
@@ -153,7 +131,6 @@ class Extractor(object):
         ''' gets information from the programmes microsite '''
         web_page = self.Browser.get_page(self._BASE_URL + program_website_url)
 
-        # todo: check for channel then execute kids show extractor
         channel_check = web_page.find('div', attrs={'class': 'menu__bar'})
         
         if channel_check is not None:
@@ -683,18 +660,18 @@ class Extractor(object):
         supporting_items = []
         content_list = web_page.find_all('div', recursive=False)
         for content in content_list:
+            if content is not None:
+                title = content.find('h2').get_text()
 
-            title = content.find('h2').get_text()
+                link = content.find('a', attrs={'class': 'superpromo__img'})
+                link = link['href'] if link is not None else None
 
-            link = content.find('a', attrs={'class': 'superpromo__img'})
-            link = link['href'] if link is not None else None
+                summary = content.find('div', attrs={'class': 'superpromo__content'})
+                summary = summary.find('p').get_text() if summary is not None else None
 
-            summary = content.find('div', attrs={'class': 'superpromo__content'})
-            summary = summary.find('p').get_text() if summary is not None else None
-
-            supporting_items.append({'title': title,
-                                     'link': link,
-                                     'summary': summary})
+                supporting_items.append({'title': title,
+                                        'link': link,
+                                        'summary': summary})
 
         return supporting_items
 
@@ -859,16 +836,17 @@ class Extractor(object):
 
                 title_location = episode_html.find(
                     'div', attrs={'class': 'play-cta__text js-play-cta-text play-cta__text--with-subtitle'})
-                title = title_location.find(
-                    'span', attrs={'class': 'typo typo--buzzard typo--bold play-cta__text__title'})
-                title = title.get_text()
+                if title_location is not None:
+                    title = title_location.find(
+                        'span', attrs={'class': 'typo typo--buzzard typo--bold play-cta__text__title'})
+                    title = title.get_text()
 
-                series_titles = title_location.find(
+                    series_titles = title_location.find(
                     'span', attrs={'class': 'typo typo--skylark play-cta__text__subtitle'})
-                series_titles = series_titles.get_text()
+                    series_titles = series_titles.get_text()
 
                 synopsis = episode_html.find('p', attrs={'class': 'synopsis__paragraph'})
-                synopsis = synopsis.get_text()
+                synopsis = synopsis.get_text() if synopsis is not None else None
 
                 temp_dict.update({'title': title,
                                 'series': series_titles,
@@ -876,27 +854,27 @@ class Extractor(object):
 
                 metadata = episode_html.find(
                     'ul', attrs={'class': 'inline-list episode-metadata typo--canary'})
+                if metadata is not None:
+                    for item in metadata.find_all('li', attrs={'class': 'inline-list__item'}):
+                        item_type = item.find('span', attrs={'class': 'tvip-hide'})
 
-                for item in metadata.find_all('li', attrs={'class': 'inline-list__item'}):
-                    item_type = item.find('span', attrs={'class': 'tvip-hide'})
+                        if item_type is not None and item_type.get_text() == 'Duration':
+                            duration = item.find('span', attrs={'class': 'episode-metadata__text'})
+                            duration = duration.get_text()
+                            temp_dict.update({'duration': duration})
 
-                    if item_type is not None and item_type.get_text() == 'Duration':
-                        duration = item.find('span', attrs={'class': 'episode-metadata__text'})
-                        duration = duration.get_text()
-                        temp_dict.update({'duration': duration})
+                        if item_type is not None and item_type.get_text() == 'First shown':
+                            first_shown = item.find('span', attrs={'class': 'episode-metadata__text'})
+                            first_shown = first_shown.get_text()
+                            temp_dict.update({'first_shown': first_shown})
 
-                    if item_type is not None and item_type.get_text() == 'First shown':
-                        first_shown = item.find('span', attrs={'class': 'episode-metadata__text'})
-                        first_shown = first_shown.get_text()
-                        temp_dict.update({'first_shown': first_shown})
+                        if item.span is not None:
+                            if 'Available' in item.span:
+                                available_until = item.find('span', attrs={'class': 'episode-metadata__text'})
+                                available_until = available_until.get_text()
+                                temp_dict.update({'available_until': available_until})
 
-                    if item.span is not None:
-                        if 'Available' in item.span:
-                            available_until = item.find('span', attrs={'class': 'episode-metadata__text'})
-                            available_until = available_until.get_text()
-                            temp_dict.update({'available_until': available_until})
-
-                episode_items.append(temp_dict)
+                    episode_items.append(temp_dict)
 
             programme_dict.update({'episodes': episode_items})
 
