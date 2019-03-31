@@ -5,6 +5,11 @@ Simple Iplayer scraper using Selenium.
 - The scraper iterates through each alphabetical entry in <http://bbc.co.uk/iplayer/a-z>
 - This data is currently output into a json file in the current directory
 
+Future Work
+
+- the script is currently very slow. Given the time i would liked to have optimised the scraping to avoid duplicates and instead link programmes and episodes by id rather than having numerous repeated recommendations in similar programmes when these could just be a simple link with a programme id. 
+- provide more command line options such as running a minimal version or a lookup that would check for the latest information on a show rather than having to rely on running the whole script from the start. this could be achioeved by adding a feature that takes a programme name as input looks up the programme in a mongodb store and then returns the programme id and then does a quick scrape of the programme microsite.
+
 Improvements:
 
 - now includes credits for each episode 
